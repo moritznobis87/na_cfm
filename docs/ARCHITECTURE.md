@@ -1,5 +1,12 @@
 # Architektur
 
+Dieses Dokument beschreibt den **Aufbau** der Software (Schichten,
+Datenmodell, bewusste Designentscheidungen). Die **Rechenvorschrift**
+selbst – jede Formel der Bewertungskette, das Auktionsmodell und ein
+durchgerechnetes Beispiel – steht in
+[rechenmodell/rechenmodell.md](rechenmodell/rechenmodell.md) bzw. als
+gesetztes PDF in [rechenmodell/Rechenmodell.pdf](rechenmodell/Rechenmodell.pdf).
+
 ## Leitidee: drei Schichten, eine Richtung
 
 ```
