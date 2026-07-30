@@ -71,9 +71,9 @@ def main() -> None:
     print("\n### Zeitreihe (ausgewählte Betriebsjahre)\n")
     spalten = [
         ("jahr", "Jahr", 0),
-        ("produktion_kwh", "Produktion (kWh)", 0),
-        ("marktwert_nominal_ct_kwh", "Marktwert nom. (ct/kWh)", 3),
-        ("verguetungssatz_ct_kwh", "Vergütungssatz (ct/kWh)", 3),
+        ("produktion_kwh", "Ertrag (kWh)", 0),
+        ("marktwert_nominal_ct_kwh", "Marktwert (ct/kWh)", 3),
+        ("verguetungssatz_ct_kwh", "Vergütung (ct/kWh)", 3),
         ("erloes_eur", "Erlös (€)", 0),
         ("opex_gesamt_eur", "OPEX (€)", 0),
         ("zinsen_eur", "Zinsen (€)", 0),

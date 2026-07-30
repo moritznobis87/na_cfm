@@ -1,802 +1,486 @@
-"""
-Erzeugt aus `rechenmodell.md` das PDF `Rechenmodell.pdf` (beides in
-diesem Verzeichnis).
+"""Erzeugt aus ``rechenmodell.md`` eine hochwertige PDF-Dokumentation.
 
-Warum ein eigener Konverter und kein LaTeX/Pandoc?
-- Die Dokumentation soll aus EINER Quelle entstehen, die auch direkt im
-  Repository (GitHub rendert Markdown inklusive $$-Formeln) lesbar ist.
-- Das PDF soll ohne zusaetzliche Systemabhaengigkeiten baubar sein.
-  Verwendet werden ausschliesslich Pakete, die das Projekt ohnehin
-  mitbringt: `reportlab` (Satz) und `matplotlib` (Formelsatz ueber die
-  eingebaute mathtext-Engine, ein TeX-Subset ohne TeX-Installation).
+Der Build verwendet eine einzige fachliche Markdown-Quelle, setzt die
+Formeln aber mit echtem XeLaTeX statt als Rasterbilder. Zusätzlich werden
 
-Unterstuetzte Markdown-Teilmenge (bewusst klein und streng - der
-Konverter bricht bei allem ab, was er nicht sicher setzen kann):
+- ``rechenweg.png`` als reproduzierbares Ablaufdiagramm,
+- ``Rechenmodell.tex`` als vollständig gesetzte LaTeX-Quelle und
+- ``Rechenmodell.pdf`` als finales Dokument
 
-    # ... #### Ueberschriften (H1 beginnt eine neue Seite)
-    Absaetze mit **fett**, *kursiv*, `code` und Inline-Formeln $...$
-    $$ ... $$        Abgesetzte Formeln (jede Zeile eine Formel)
-    - / * Listen     (eine Verschachtelungsebene ueber zwei Leerzeichen)
-    1. Listen        (nummeriert)
-    | a | b |        GFM-Tabellen mit Trennzeile
-    > Hinweis        Merkkasten
-    ```             Codeblock
-    <!-- ... -->     Kommentar (wird nicht gesetzt)
+erzeugt.
 
-Aufruf:  python docs/rechenmodell/build_pdf.py  (oder: make dokumentation)
+Voraussetzungen
+---------------
+- Python 3.10+
+- Graphviz (``dot``)
+- Pandoc
+- XeLaTeX und latexmk (TeX Live oder MacTeX)
+
+Aufruf
+------
+``python docs/rechenmodell/build_pdf.py``
 """
 
 from __future__ import annotations
 
-import hashlib
+import argparse
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
-
-from matplotlib import font_manager, mathtext  # noqa: E402
-from reportlab.lib import colors  # noqa: E402
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY  # noqa: E402
-from reportlab.lib.pagesizes import A4  # noqa: E402
-from reportlab.lib.styles import ParagraphStyle  # noqa: E402
-from reportlab.lib.units import cm  # noqa: E402
-from reportlab.platypus import (  # noqa: E402
-    BaseDocTemplate,
-    CondPageBreak,
-    Frame,
-    Image,
-    KeepTogether,
-    NextPageTemplate,
-    PageBreak,
-    PageTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle,
-    XPreformatted,
-)
-from reportlab.platypus.tableofcontents import TableOfContents  # noqa: E402
-
 HIER = Path(__file__).resolve().parent
 QUELLE = HIER / "rechenmodell.md"
-ZIEL = HIER / "Rechenmodell.pdf"
-LOGO = HIER.parent.parent / "assets" / "nobis_logo.png"
+TEX_ZIEL = HIER / "Rechenmodell.tex"
+PDF_ZIEL = HIER / "Rechenmodell.pdf"
+DIAGRAMM = HIER / "rechenweg.png"
 
-# Markenfarben - identisch zu app/report.py (dort bewusst ohne
-# Streamlit-Import dupliziert, hier ohne App-Import).
-BRAND = colors.HexColor("#167B88")
-INK = colors.HexColor("#14304F")
-INK_SOFT = colors.HexColor("#2B4F77")
-MUTED = colors.HexColor("#5C636A")
-LINE = colors.HexColor("#E1E4E8")
-WASH = colors.HexColor("#F6F7F9")
+DOKUMENTTITEL = (
+    "Dokumentation Cash-Flow-Model - "
+    "Rechenmodell und Berechnungsvorschrift"
+)
 
-SEITE_B, SEITE_H = A4
-RAND_L = RAND_R = 2.0 * cm
-RAND_O, RAND_U = 2.2 * cm, 1.8 * cm
-INHALT_B = SEITE_B - RAND_L - RAND_R
-
-BASIS_SCHRIFT = 9.4
-MATH_DPI = 300
+BRAND = "167B88"
+INK = "14304F"
+INK_SOFT = "2B4F77"
+MUTED = "5C636A"
+LINE = "DDE3E8"
+WASH = "F4F7F8"
 
 
-# ---------------------------------------------------------------------------
-# Formelsatz (matplotlib mathtext -> PNG)
-# ---------------------------------------------------------------------------
-
-_MATH_PARSER = mathtext.MathTextParser("path")
+class BuildFehler(RuntimeError):
+    """Lesbare Fehlermeldung für fehlende Werkzeuge oder Build-Abbrüche."""
 
 
-@dataclass(frozen=True)
-class MathBild:
-    pfad: Path
-    breite_pt: float
-    hoehe_pt: float
-    tiefgang_pt: float          # Unterlaenge unter der Grundlinie
-
-
-class Formelsetzer:
-    """Rendert `$...$`-Ausdruecke einmalig in PNG-Dateien und liefert die
-    exakten Masse in Punkt (inklusive Unterlaenge, damit Inline-Formeln
-    auf der Grundlinie des Fliesstexts sitzen)."""
-
-    def __init__(self, arbeitsverzeichnis: Path) -> None:
-        self.dir = arbeitsverzeichnis
-        self.dir.mkdir(parents=True, exist_ok=True)
-        self._cache: dict[tuple[str, float], MathBild] = {}
-
-    def render(self, ausdruck: str, schriftgroesse: float) -> MathBild:
-        schluessel = (ausdruck, schriftgroesse)
-        if schluessel in self._cache:
-            return self._cache[schluessel]
-
-        formel = f"${ausdruck}$"
-        prop = font_manager.FontProperties(size=schriftgroesse)
-        try:
-            breite_px, hoehe_px, tiefgang_px, *_ = _MATH_PARSER.parse(
-                formel, dpi=MATH_DPI, prop=prop
-            )
-        except Exception as fehler:  # pragma: no cover - Autorenfehler
-            raise SystemExit(
-                f"Formel nicht setzbar: {formel}\n{fehler}\n"
-                "Hinweis: mathtext kennt \\leq/\\geq (nicht \\le/\\ge)."
-            ) from fehler
-
-        name = hashlib.sha1(
-            f"{ausdruck}|{schriftgroesse}".encode()
-        ).hexdigest()[:16]
-        pfad = self.dir / f"formel_{name}.png"
-        if not pfad.exists():
-            mathtext.math_to_image(
-                formel, str(pfad), prop=prop, dpi=MATH_DPI, format="png"
-            )
-
-        skala = 72.0 / MATH_DPI
-        bild = MathBild(
-            pfad=pfad,
-            breite_pt=breite_px * skala,
-            hoehe_pt=hoehe_px * skala,
-            tiefgang_pt=tiefgang_px * skala,
+def _werkzeug(name: str) -> str:
+    pfad = shutil.which(name)
+    if not pfad:
+        raise BuildFehler(
+            f"Benötigtes Werkzeug '{name}' wurde nicht gefunden. "
+            "Installiere Pandoc, Graphviz und eine XeLaTeX-Distribution."
         )
-        self._cache[schluessel] = bild
-        return bild
+    return pfad
 
 
-# ---------------------------------------------------------------------------
-# Absatzformate
-# ---------------------------------------------------------------------------
-
-
-def _stile() -> dict[str, ParagraphStyle]:
-    fliess = ParagraphStyle(
-        "fliess",
-        fontName="Helvetica",
-        fontSize=BASIS_SCHRIFT,
-        leading=BASIS_SCHRIFT * 1.55,
-        textColor=INK,
-        alignment=TA_JUSTIFY,
-        spaceAfter=5,
+def _run(befehl: list[str], cwd: Path, *, ausgabe: bool = False) -> str:
+    prozess = subprocess.run(
+        befehl,
+        cwd=cwd,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
     )
-    return {
-        "fliess": fliess,
-        "h1": ParagraphStyle(
-            "h1", parent=fliess, fontName="Helvetica-Bold", fontSize=17,
-            leading=21, textColor=INK, spaceBefore=0, spaceAfter=10,
-            alignment=0,
-        ),
-        "h2": ParagraphStyle(
-            "h2", parent=fliess, fontName="Helvetica-Bold", fontSize=12.5,
-            leading=16, textColor=BRAND, spaceBefore=14, spaceAfter=5,
-            alignment=0,
-        ),
-        "h3": ParagraphStyle(
-            "h3", parent=fliess, fontName="Helvetica-Bold", fontSize=10.4,
-            leading=13.5, textColor=INK_SOFT, spaceBefore=10, spaceAfter=3,
-            alignment=0,
-        ),
-        "h4": ParagraphStyle(
-            "h4", parent=fliess, fontName="Helvetica-Oblique", fontSize=9.6,
-            leading=13, textColor=INK_SOFT, spaceBefore=8, spaceAfter=2,
-            alignment=0,
-        ),
-        "liste": ParagraphStyle(
-            "liste", parent=fliess, leftIndent=10, bulletIndent=1,
-            spaceAfter=2, alignment=0,
-        ),
-        "liste2": ParagraphStyle(
-            "liste2", parent=fliess, leftIndent=24, bulletIndent=14,
-            spaceAfter=1, alignment=0,
-        ),
-        "tabelle": ParagraphStyle(
-            "tabelle", parent=fliess, fontSize=8.0, leading=10.6,
-            alignment=0, spaceAfter=0,
-        ),
-        "tabelle_kopf": ParagraphStyle(
-            "tabelle_kopf", parent=fliess, fontName="Helvetica-Bold",
-            fontSize=8.0, leading=10.6, alignment=0, spaceAfter=0,
-            textColor=colors.white,
-        ),
-        "hinweis": ParagraphStyle(
-            "hinweis", parent=fliess, fontSize=8.8, leading=13,
-            textColor=INK_SOFT, spaceAfter=0,
-        ),
-        "code": ParagraphStyle(
-            "code", parent=fliess, fontName="Courier", fontSize=7.6,
-            leading=10, textColor=INK, alignment=0, spaceAfter=0,
-        ),
-        "titel": ParagraphStyle(
-            "titel", parent=fliess, fontName="Helvetica-Bold", fontSize=27,
-            leading=32, textColor=INK, alignment=TA_CENTER, spaceAfter=6,
-        ),
-        "untertitel": ParagraphStyle(
-            "untertitel", parent=fliess, fontSize=12.5, leading=17,
-            textColor=BRAND, alignment=TA_CENTER, spaceAfter=4,
-        ),
-        "deckzeile": ParagraphStyle(
-            "deckzeile", parent=fliess, fontSize=9.2, leading=14,
-            textColor=MUTED, alignment=TA_CENTER, spaceAfter=0,
-        ),
-    }
-
-
-# ---------------------------------------------------------------------------
-# Inline-Auszeichnung
-# ---------------------------------------------------------------------------
-
-#: Listenpunkt (fuer die Fortsetzung einer bereits laufenden Liste) und
-#: Listenbeginn (der einen Absatz unterbrechen darf). Wie in CommonMark
-#: darf eine nummerierte Liste einen Absatz nur mit "1." beginnen - sonst
-#: wuerde eine Umbruchzeile wie "31. Dezember ..." zum Listenpunkt.
-_LISTE_PUNKT = re.compile(r"^(\s*)([-*]|\d+\.)\s+(.*)$")
-_LISTE_BEGINN = re.compile(r"^(\s*)([-*]|1\.)\s+")
-
-
-def _ist_neuer_punkt(treffer: re.Match, letzte_nummer: int | None) -> bool:
-    """Ein Treffer ist ein neuer Listenpunkt, wenn er ein Aufzaehlungs-
-    zeichen traegt, mit 1. beginnt oder die laufende Nummerierung
-    fortsetzt. Alles andere ist Fliesstext einer Umbruchzeile."""
-    marke = treffer.group(2)
-    if not marke[0].isdigit():
-        return True
-    nummer = int(marke[:-1])
-    return nummer == 1 or (letzte_nummer is not None and nummer == letzte_nummer + 1)
-
-
-_INLINE_MATH = re.compile(r"(?<!\\)\$(.+?)(?<!\\)\$")
-_CODE = re.compile(r"`([^`]+)`")
-_FETT = re.compile(r"\*\*(.+?)\*\*")
-_KURSIV = re.compile(r"(?<![*\w])\*([^*]+?)\*(?![*\w])")
-_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
-
-
-#: Kleiner LaTeX-zu-Unicode-Ersatz fuer Klartextfassungen (Inhalts-
-#: verzeichnis, PDF-Lesezeichen) - dort steht kein Formelsatz zur
-#: Verfuegung, roher Quelltext waere aber unlesbar.
-_MATH_KLARTEXT = {
-    r"\geq": "≥", r"\leq": "≤", r"\cdot": "·", r"\times": "×",
-    r"\approx": "≈", r"\rightarrow": "→", r"\Leftrightarrow": "⇔",
-    r"\in": "∈", r"\sum": "Σ", r"\mu": "μ", r"\kappa": "κ",
-    r"\sigma": "σ", r"\varepsilon": "ε", r"\,": " ", r"\;": " ",
-    r"\ ": " ",
-}
-
-
-def _klartext(text: str) -> str:
-    """Fassung ohne Auszeichnung - fuer Inhaltsverzeichnis und Lesezeichen."""
-    text = _INLINE_MATH.sub(lambda m: m.group(1), text)
-    text = _CODE.sub(r"\1", text).replace("**", "")
-    text = re.sub(r"\\mathrm\{([^}]*)\}", r"\1", text)
-    for befehl, zeichen in _MATH_KLARTEXT.items():
-        text = text.replace(befehl, zeichen)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def _escape(text: str) -> str:
-    return (
-        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    )
-
-
-def inline(text: str, setzer: Formelsetzer, schriftgroesse: float) -> str:
-    """Wandelt eine Markdown-Zeile in reportlab-Markup. Inline-Formeln
-    werden als Bild eingebettet und ueber `valign` auf die Grundlinie des
-    umgebenden Textes gesetzt."""
-    platzhalter: dict[str, str] = {}
-
-    def merke(markup: str) -> str:
-        schluessel = f"\x00{len(platzhalter)}\x00"
-        platzhalter[schluessel] = markup
-        return schluessel
-
-    def math_ersetzen(treffer: re.Match) -> str:
-        bild = setzer.render(treffer.group(1).strip(), schriftgroesse)
-        return merke(
-            f'<img src="{bild.pfad}" width="{bild.breite_pt:.2f}" '
-            f'height="{bild.hoehe_pt:.2f}" valign="{-bild.tiefgang_pt:.2f}"/>'
+    if prozess.returncode != 0:
+        kommando = " ".join(befehl)
+        raise BuildFehler(
+            f"Build-Schritt fehlgeschlagen:\n{kommando}\n\n{prozess.stdout}"
         )
+    if ausgabe and prozess.stdout:
+        print(prozess.stdout.rstrip())
+    return prozess.stdout
 
-    def code_ersetzen(treffer: re.Match) -> str:
-        return merke(
-            f'<font face="Courier" size="{schriftgroesse - 0.9:.1f}">'
-            f"{_escape(treffer.group(1))}</font>"
+
+def _diagramm_dot() -> str:
+    """Graphviz-Quelle des Ablaufdiagramms in Markenfarben."""
+    return f'''digraph Rechenweg {{
+      graph [
+        rankdir=TB,
+        bgcolor="transparent",
+        pad="0.16",
+        nodesep="0.28",
+        ranksep="0.38",
+        splines=ortho
+      ];
+      node [
+        shape=rect,
+        style="rounded,filled",
+        fontname="Lato",
+        fontsize=11,
+        color="#{LINE}",
+        fontcolor="#{INK}",
+        fillcolor="white",
+        penwidth=1.2,
+        margin="0.13,0.09"
+      ];
+      edge [
+        color="#{INK_SOFT}",
+        penwidth=1.25,
+        arrowsize=0.72,
+        fontname="Lato",
+        fontsize=8.5,
+        fontcolor="#{MUTED}"
+      ];
+
+      projekt [label=<
+        <B>Projektmaske</B><BR/><FONT POINT-SIZE="9">PVProject</FONT>
+      >, width=2.25];
+      global [label=<
+        <B>Globale Annahmen</B><BR/><FONT POINT-SIZE="9">GlobalAssumptions</FONT>
+      >, width=2.25];
+      {{ rank=same; projekt; global; }}
+
+      resolve [label=<
+        <FONT COLOR="white"><B>0 · Parameter auflösen</B></FONT><BR/>
+        <FONT COLOR="white" POINT-SIZE="9">EffectiveAssumptions · Kapitel 4</FONT>
+      >, fillcolor="#{BRAND}", color="#{BRAND}", width=3.25];
+
+      timeline [label=<
+        <B>1 · Zeitachse</B><BR/><FONT POINT-SIZE="9">Perioden und Anteilsfaktoren · Kapitel 5</FONT>
+      >, width=3.45];
+      energy [label=<
+        <B>2 · Energieertrag</B><BR/><FONT POINT-SIZE="9">E<SUB>t</SUB> · Kapitel 6</FONT>
+      >, width=3.45];
+      revenue [label=<
+        <B>3 · Erlöse</B><BR/><FONT POINT-SIZE="9">R<SUB>t</SUB>, m<SUB>t</SUB>, p<SUB>t</SUB> · Kapitel 7</FONT>
+      >, width=3.45];
+      opex [label=<
+        <B>4 · Betriebskosten</B><BR/><FONT POINT-SIZE="9">C<SUB>t</SUB> · inkl. markt- und umsatzabhängiger Kosten · Kapitel 8</FONT>
+      >, width=3.45];
+      financing [label=<
+        <B>5 · Finanzierung</B><BR/><FONT POINT-SIZE="9">Z<SUB>t</SUB>, T<SUB>t</SUB>, B<SUB>t</SUB> · separater Seitenzweig · Kapitel 9</FONT>
+      >, fillcolor="#{WASH}", width=2.85];
+      tax [label=<
+        <B>6 · Ertragsteuern</B><BR/><FONT POINT-SIZE="9">A<SUB>t</SUB>, V<SUB>t</SUB>, S<SUB>t</SUB> · Kapitel 10</FONT>
+      >, width=3.45];
+      cashflow [label=<
+        <FONT COLOR="white"><B>7 · Equity-Cashflow</B></FONT><BR/>
+        <FONT COLOR="white" POINT-SIZE="9">CF<SUB>t</SUB>, kum. CF<SUB>t</SUB>, DSCR<SUB>t</SUB> · Kapitel 11</FONT>
+      >, fillcolor="#{INK}", color="#{INK}", width=3.6];
+      kpis [label=<
+        <B>8 · Bewertungskennzahlen</B><BR/><FONT POINT-SIZE="9">XNPV, XIRR, Payback, DSCR<SUB>min</SUB> · Kapitel 12</FONT>
+      >, fillcolor="#{WASH}", color="#{BRAND}", penwidth=1.8, width=3.6];
+
+      projekt -> resolve;
+      global -> resolve;
+      resolve -> timeline;
+      timeline -> energy;
+      energy -> revenue;
+      revenue -> opex;
+      opex -> tax;
+      tax -> cashflow;
+      cashflow -> kpis;
+
+      resolve -> financing [constraint=false];
+      financing -> tax;
+      financing -> cashflow [constraint=false];
+
+      {{ rank=same; opex; financing; }}
+    }}'''
+
+
+def erzeuge_diagramm(ziel: Path = DIAGRAMM) -> Path:
+    dot = _werkzeug("dot")
+    ziel.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="rechenweg-") as tmp:
+        quelle = Path(tmp) / "rechenweg.dot"
+        quelle.write_text(_diagramm_dot(), encoding="utf-8")
+        _run(
+            [dot, "-Tpng", "-Gdpi=230", str(quelle), "-o", str(ziel)],
+            cwd=ziel.parent,
         )
-
-    text = _INLINE_MATH.sub(math_ersetzen, text)
-    text = _CODE.sub(code_ersetzen, text)
-    text = _LINK.sub(lambda m: merke(f'<link href="{m.group(2)}" '
-                                     f'color="#167B88">{_escape(m.group(1))}'
-                                     f"</link>"), text)
-    text = _escape(text)
-    text = _FETT.sub(r"<b>\1</b>", text)
-    text = _KURSIV.sub(r"<i>\1</i>", text)
-    text = text.replace("\\$", "$")
-    for schluessel, markup in platzhalter.items():
-        text = text.replace(schluessel, markup)
-    return text
-
-
-# ---------------------------------------------------------------------------
-# Markdown -> Flowables
-# ---------------------------------------------------------------------------
-
-
-def _spaltenbreiten(zeilen: list[list[str]], spalten: int,
-                    schriftgroesse: float) -> list[float]:
-    """Spaltenbreiten: proportional zur Textmenge, aber nie schmaler als
-    das laengste unteilbare Wort der Spalte - sonst zerlegt reportlab
-    Kopfzeilen wie 'Equity-CF' mitten im Wort. Reicht die Seitenbreite
-    nicht, wird zuerst der Spielraum der grosszuegigen Spalten
-    abgeschmolzen und erst danach global skaliert."""
-    from reportlab.pdfbase.pdfmetrics import stringWidth
-
-    polster = 9.0
-    laengen, mindest = [], []
-    for i in range(spalten):
-        texte = [_klartext(zeile[i]) for zeile in zeilen if i < len(zeile)]
-        laengen.append(max((len(t) for t in texte), default=1) or 1)
-        woerter = [w for t in texte for w in t.split()] or [""]
-        mindest.append(
-            max(stringWidth(w, "Helvetica-Bold", schriftgroesse) for w in woerter)
-            + polster
-        )
-
-    summe_laengen = sum(laengen)
-    breiten = [
-        max(INHALT_B * laenge / summe_laengen, m)
-        for laenge, m in zip(laengen, mindest, strict=True)
-    ]
-
-    ueberschuss = sum(breiten) - INHALT_B
-    if ueberschuss > 0:
-        spielraum = [b - m for b, m in zip(breiten, mindest, strict=True)]
-        if sum(spielraum) > 0:
-            anteil = min(1.0, ueberschuss / sum(spielraum))
-            breiten = [
-                b - s * anteil for b, s in zip(breiten, spielraum, strict=True)
-            ]
-        if sum(breiten) > INHALT_B:      # Notfall: harte Skalierung
-            faktor = INHALT_B / sum(breiten)
-            breiten = [b * faktor for b in breiten]
-    return breiten
-
-
-class Ueberschrift(Paragraph):
-    """Paragraph, der sich beim Satz fuer Inhaltsverzeichnis und
-    PDF-Lesezeichen meldet (siehe DokumentVorlage.afterFlowable)."""
-
-    def __init__(self, text: str, stil: ParagraphStyle, ebene: int,
-                 klartext: str, marke: str) -> None:
-        super().__init__(text, stil)
-        self.toc_ebene = ebene
-        self.toc_text = klartext
-        self.toc_marke = marke
-
-
-@dataclass
-class Konverter:
-    setzer: Formelsetzer
-    stile: dict[str, ParagraphStyle]
-
-    def __post_init__(self) -> None:
-        self._marken = 0
-
-    # -- Bausteine ---------------------------------------------------------
-
-    def _ueberschrift(self, ebene: int, text: str) -> list:
-        self._marken += 1
-        marke = f"h{self._marken}"
-        stil = self.stile[f"h{min(ebene, 4)}"]
-        klartext = _klartext(text)
-        absatz = Ueberschrift(
-            inline(text, self.setzer, stil.fontSize),
-            stil, ebene, klartext, marke,
-        )
-        if ebene == 1:
-            return [PageBreak(), absatz]
-        return [CondPageBreak(3.2 * cm), absatz]
-
-    def _formelblock(self, zeilen: list[str]) -> list:
-        """Abgesetzte Formeln: jede Quellzeile wird eigenstaendig gesetzt
-        und zentriert; mehrere Zeilen bleiben als Block zusammen."""
-        flowables = [Spacer(1, 3)]
-        for zeile in zeilen:
-            ausdruck = zeile.strip()
-            if not ausdruck:
-                continue
-            bild = self.setzer.render(ausdruck, BASIS_SCHRIFT + 3.0)
-            breite, hoehe = bild.breite_pt, bild.hoehe_pt
-            if breite > INHALT_B - 10:            # zu breite Formel skalieren
-                faktor = (INHALT_B - 10) / breite
-                breite, hoehe = breite * faktor, hoehe * faktor
-            grafik = Image(str(bild.pfad), width=breite, height=hoehe)
-            grafik.hAlign = "CENTER"
-            flowables += [grafik, Spacer(1, 3)]
-        flowables.append(Spacer(1, 3))
-        return [KeepTogether(flowables)]
-
-    def _tabelle(self, zeilen: list[str]) -> list:
-        raster = [
-            [z.strip() for z in zeile.strip().strip("|").split("|")]
-            for zeile in zeilen
-        ]
-        kopf, koerper = raster[0], raster[2:]     # raster[1] = Trennzeile
-        spalten = len(kopf)
-        koerper = [z + [""] * (spalten - len(z)) for z in koerper]
-
-        stil_kopf = self.stile["tabelle_kopf"]
-        stil_zelle = self.stile["tabelle"]
-        daten = [[Paragraph(inline(z, self.setzer, stil_kopf.fontSize),
-                            stil_kopf) for z in kopf]]
-        daten += [
-            [Paragraph(inline(z, self.setzer, stil_zelle.fontSize), stil_zelle)
-             for z in zeile]
-            for zeile in koerper
-        ]
-
-        breiten = _spaltenbreiten(raster[:1] + koerper, spalten,
-                                  stil_zelle.fontSize)
-
-        tabelle = Table(daten, colWidths=breiten, repeatRows=1, hAlign="LEFT")
-        tabelle.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), INK),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3.5),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, WASH]),
-                    ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
-                    ("BOX", (0, 0), (-1, -1), 0.4, LINE),
-                ]
-            )
-        )
-        # Kurze Tabellen nicht ueber einen Seitenwechsel zerreissen; lange
-        # muessen umbrechen duerfen (repeatRows wiederholt den Kopf).
-        if len(daten) <= 14:
-            return [Spacer(1, 3), KeepTogether(tabelle), Spacer(1, 7)]
-        return [Spacer(1, 3), tabelle, Spacer(1, 7)]
-
-    def _hinweis(self, zeilen: list[str]) -> list:
-        stil = self.stile["hinweis"]
-        text = " ".join(z.strip() for z in zeilen)
-        absatz = Paragraph(inline(text, self.setzer, stil.fontSize), stil)
-        tabelle = Table([[absatz]], colWidths=[INHALT_B])
-        tabelle.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, -1), WASH),
-                    ("LINEBEFORE", (0, 0), (0, -1), 2.2, BRAND),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                    ("TOPPADDING", (0, 0), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ]
-            )
-        )
-        return [Spacer(1, 3), tabelle, Spacer(1, 7)]
-
-    def _code(self, zeilen: list[str]) -> list:
-        stil = self.stile["code"]
-        text = "\n".join(_escape(z) for z in zeilen)
-        block = XPreformatted(text, stil)
-        tabelle = Table([[block]], colWidths=[INHALT_B])
-        tabelle.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, -1), WASH),
-                    ("BOX", (0, 0), (-1, -1), 0.4, LINE),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 7),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-                    ("TOPPADDING", (0, 0), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ]
-            )
-        )
-        return [Spacer(1, 3), tabelle, Spacer(1, 7)]
-
-    # -- Hauptschleife -----------------------------------------------------
-
-    def konvertiere(self, markdown: str) -> list:
-        zeilen = markdown.replace("\t", "    ").split("\n")
-        flowables: list = []
-        i = 0
-        while i < len(zeilen):
-            zeile = zeilen[i]
-            blank = zeile.strip()
-
-            if not blank:
-                i += 1
-                continue
-
-            if blank.startswith("<!--"):
-                while i < len(zeilen) and "-->" not in zeilen[i]:
-                    i += 1
-                i += 1
-                continue
-
-            if blank.startswith("#"):
-                ebene = len(blank) - len(blank.lstrip("#"))
-                flowables += self._ueberschrift(ebene, blank[ebene:].strip())
-                i += 1
-                continue
-
-            if blank.startswith("$$"):
-                rest = blank[2:].strip()
-                if rest.endswith("$$"):              # $$ ... $$ in einer Zeile
-                    flowables += self._formelblock([rest[:-2].strip()])
-                    i += 1
-                    continue
-                block: list[str] = [rest] if rest else []
-                i += 1
-                while i < len(zeilen) and not zeilen[i].strip().startswith("$$"):
-                    block.append(zeilen[i])
-                    i += 1
-                i += 1
-                flowables += self._formelblock(block)
-                continue
-
-            if blank.startswith("```"):
-                i += 1
-                block = []
-                while i < len(zeilen) and not zeilen[i].strip().startswith("```"):
-                    block.append(zeilen[i])
-                    i += 1
-                i += 1
-                flowables += self._code(block)
-                continue
-
-            if blank.startswith("|"):
-                block = []
-                while i < len(zeilen) and zeilen[i].strip().startswith("|"):
-                    block.append(zeilen[i])
-                    i += 1
-                flowables += self._tabelle(block)
-                continue
-
-            if blank.startswith(">"):
-                block = []
-                while i < len(zeilen) and zeilen[i].strip().startswith(">"):
-                    block.append(zeilen[i].strip()[1:])
-                    i += 1
-                flowables += self._hinweis(block)
-                continue
-
-            if _LISTE_BEGINN.match(zeile):
-                listen_flowables, i = self._liste(zeilen, i)
-                flowables += listen_flowables
-                continue
-
-            # Absatz: bis zur naechsten Leerzeile oder Blockmarkierung.
-            block = []
-            while i < len(zeilen):
-                akt = zeilen[i].strip()
-                if not akt or akt.startswith(("#", "|", ">", "```", "$$")):
-                    break
-                if _LISTE_BEGINN.match(zeilen[i]):
-                    break
-                block.append(akt)
-                i += 1
-            stil = self.stile["fliess"]
-            flowables.append(
-                Paragraph(inline(" ".join(block), self.setzer, stil.fontSize),
-                          stil)
-            )
-        return flowables
-
-    def _liste(self, zeilen: list[str], start: int) -> tuple[list, int]:
-        flowables: list = []
-        i = start
-        letzte_nummer: int | None = None
-        while i < len(zeilen):
-            treffer = _LISTE_PUNKT.match(zeilen[i])
-            if treffer is None or not _ist_neuer_punkt(treffer, letzte_nummer):
-                break
-            einzug, marke, text = treffer.groups()
-            letzte_nummer = (
-                int(marke[:-1]) if marke[0].isdigit() else None
-            )
-            i += 1
-            # Fortsetzungszeilen anhaengen: eingerueckt und kein neuer Punkt.
-            while i < len(zeilen) and zeilen[i].strip() and zeilen[i].startswith(" "):
-                folge = _LISTE_PUNKT.match(zeilen[i])
-                if folge is not None and _ist_neuer_punkt(folge, letzte_nummer):
-                    break
-                text += " " + zeilen[i].strip()
-                i += 1
-            stil = self.stile["liste2"] if len(einzug) >= 2 else self.stile["liste"]
-            aufzaehlung = marke if marke[0].isdigit() else "•"
-            flowables.append(
-                Paragraph(
-                    inline(text, self.setzer, stil.fontSize), stil,
-                    bulletText=aufzaehlung,
-                )
-            )
-        return flowables, i
-
-
-# ---------------------------------------------------------------------------
-# Dokumentvorlage: Kopf-/Fusszeile, Inhaltsverzeichnis, Lesezeichen
-# ---------------------------------------------------------------------------
-
-
-class DokumentVorlage(BaseDocTemplate):
-    def __init__(self, ziel: Path, titel: str, **kwargs) -> None:
-        super().__init__(
-            str(ziel), pagesize=A4, title=titel, author="Nobis Analytics",
-            subject="Rechenweg und mathematische Modellvorschrift",
-            leftMargin=RAND_L, rightMargin=RAND_R,
-            topMargin=RAND_O, bottomMargin=RAND_U, **kwargs,
-        )
-        self.kapitel = ""
-        rahmen_titel = Frame(
-            RAND_L, RAND_U, INHALT_B, SEITE_H - RAND_O - RAND_U, id="titel"
-        )
-        rahmen_inhalt = Frame(
-            RAND_L, RAND_U, INHALT_B, SEITE_H - RAND_O - RAND_U, id="inhalt"
-        )
-        self.addPageTemplates(
-            [
-                PageTemplate(id="Titel", frames=[rahmen_titel]),
-                # onPageEnd statt onPage: Die Kolumnentitel sollen das
-                # Kapitel DIESER Seite nennen. Da jedes Kapitel auf einer
-                # neuen Seite beginnt, ist es am Seitenende bekannt - bei
-                # onPage stuende dort noch das vorherige Kapitel.
-                PageTemplate(
-                    id="Inhalt", frames=[rahmen_inhalt],
-                    onPageEnd=self._kopf_und_fuss,
-                ),
-            ]
-        )
-
-    def _kopf_und_fuss(self, canvas, dokument) -> None:
-        canvas.saveState()
-        canvas.setFont("Helvetica", 7.4)
-        canvas.setFillColor(MUTED)
-        canvas.drawString(
-            RAND_L, SEITE_H - RAND_O + 12,
-            "TEA-CFM · Rechenmodell und Berechnungsvorschrift",
-        )
-        if self.kapitel:
-            canvas.drawRightString(
-                SEITE_B - RAND_R, SEITE_H - RAND_O + 12, self.kapitel[:70]
-            )
-        canvas.setStrokeColor(LINE)
-        canvas.setLineWidth(0.4)
-        canvas.line(
-            RAND_L, SEITE_H - RAND_O + 7, SEITE_B - RAND_R, SEITE_H - RAND_O + 7
-        )
-        canvas.line(RAND_L, RAND_U - 10, SEITE_B - RAND_R, RAND_U - 10)
-        canvas.drawCentredString(
-            SEITE_B / 2, RAND_U - 20, f"Seite {canvas.getPageNumber()}"
-        )
-        canvas.restoreState()
-
-    def beforeDocument(self) -> None:
-        # multiBuild laeuft die Story zweimal durch - die Kopfzeile darf
-        # nicht mit dem Kapitel des vorherigen Durchlaufs starten.
-        self.kapitel = ""
-
-    def afterFlowable(self, flowable) -> None:
-        if not isinstance(flowable, Ueberschrift):
-            return
-        self.notify(
-            "TOCEntry",
-            (flowable.toc_ebene - 1, flowable.toc_text, self.page,
-             flowable.toc_marke),
-        )
-        self.canv.bookmarkPage(flowable.toc_marke)
-        self.canv.addOutlineEntry(
-            flowable.toc_text[:110], flowable.toc_marke,
-            level=min(flowable.toc_ebene - 1, 3), closed=(flowable.toc_ebene > 2),
-        )
-        if flowable.toc_ebene == 1:
-            self.kapitel = flowable.toc_text
-
-
-def _deckblatt(stile: dict[str, ParagraphStyle], untertitel: str) -> list:
-    flowables: list = [Spacer(1, 2.6 * cm)]
-    if LOGO.exists():
-        logo = Image(str(LOGO), width=4.6 * cm, height=4.6 * cm * 0.28)
-        logo._restrictSize(4.6 * cm, 2.2 * cm)
-        logo.hAlign = "CENTER"
-        flowables += [logo, Spacer(1, 1.6 * cm)]
-    flowables += [
-        Paragraph("Rechenmodell", stile["titel"]),
-        Paragraph(
-            "Vollständige Dokumentation des Rechenweges",
-            stile["untertitel"],
-        ),
-        Spacer(1, 0.5 * cm),
-        Paragraph(untertitel, stile["deckzeile"]),
-        Spacer(1, 1.4 * cm),
-    ]
-    strich = Table([[""]], colWidths=[6 * cm], rowHeights=[2])
-    strich.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), BRAND)]))
-    strich.hAlign = "CENTER"
-    flowables += [strich, Spacer(1, 1.4 * cm)]
-    flowables += [
-        Paragraph(
-            "TEA-CFM – Wirtschaftlichkeitsrechnung für "
-            "PV-Projekte<br/>nach dem österreichischen "
-            "EAG-Marktprämienmodell", stile["deckzeile"],
-        ),
-        Spacer(1, 0.4 * cm),
-        Paragraph(
-            f"Stand: {date.today().strftime('%d.%m.%Y')} · "
-            "erzeugt aus <font face='Courier' size='8'>"
-            "docs/rechenmodell/rechenmodell.md</font>",
-            stile["deckzeile"],
-        ),
-    ]
-    return flowables
-
-
-def _inhaltsverzeichnis(stile: dict[str, ParagraphStyle]) -> list:
-    toc = TableOfContents()
-    toc.levelStyles = [
-        ParagraphStyle(
-            "toc0", fontName="Helvetica-Bold", fontSize=9.8, leading=16,
-            textColor=INK, spaceBefore=6,
-        ),
-        ParagraphStyle(
-            "toc1", fontName="Helvetica", fontSize=9.0, leading=13,
-            textColor=INK_SOFT, leftIndent=14, firstLineIndent=-2,
-        ),
-        ParagraphStyle(
-            "toc2", fontName="Helvetica", fontSize=8.4, leading=12,
-            textColor=MUTED, leftIndent=30, firstLineIndent=-2,
-        ),
-        ParagraphStyle(
-            "toc3", fontName="Helvetica", fontSize=8.0, leading=11,
-            textColor=MUTED, leftIndent=44, firstLineIndent=-2,
-        ),
-    ]
-    return [
-        Paragraph("Inhalt", stile["h1"]),
-        Spacer(1, 6),
-        toc,
-    ]
-
-
-def baue_pdf(quelle: Path = QUELLE, ziel: Path = ZIEL) -> Path:
-    markdown = quelle.read_text(encoding="utf-8")
-
-    # Ein optionaler YAML-artiger Kopf (erste Zeile "% Untertitel") setzt
-    # die Zeile auf dem Deckblatt.
-    untertitel = "Von der Projektmaske zum Cashflow, zu den Kennzahlen "\
-                 "und zum Auktionsmodell"
-    if markdown.startswith("% "):
-        kopf, _, markdown = markdown.partition("\n")
-        untertitel = kopf[2:].strip()
-
-    stile = _stile()
-    with tempfile.TemporaryDirectory(prefix="rechenmodell-formeln-") as tmp:
-        setzer = Formelsetzer(Path(tmp))
-        konverter = Konverter(setzer=setzer, stile=stile)
-        inhalt = konverter.konvertiere(markdown)
-
-        story = _deckblatt(stile, untertitel)
-        story += [NextPageTemplate("Inhalt"), PageBreak()]
-        story += _inhaltsverzeichnis(stile)
-        story += inhalt
-
-        dokument = DokumentVorlage(ziel, titel="TEA-CFM – Rechenmodell")
-        # multiBuild: zwei Durchlaeufe, damit die Seitenzahlen im
-        # Inhaltsverzeichnis stimmen.
-        dokument.multiBuild(story)
     return ziel
 
 
+def _preamble(tagline: str) -> str:
+    stand = date.today().strftime("%d.%m.%Y")
+    # Der Inhalt wird von Pandoc direkt in die erzeugte TeX-Datei kopiert.
+    return rf'''
+% --- Dokumentdesign -------------------------------------------------------
+\usepackage{{microtype}}
+\usepackage{{xcolor}}
+\definecolor{{Brand}}{{HTML}}{{{BRAND}}}
+\definecolor{{Ink}}{{HTML}}{{{INK}}}
+\definecolor{{InkSoft}}{{HTML}}{{{INK_SOFT}}}
+\definecolor{{Muted}}{{HTML}}{{{MUTED}}}
+\definecolor{{Rule}}{{HTML}}{{{LINE}}}
+\definecolor{{Wash}}{{HTML}}{{{WASH}}}
+\color{{Ink}}
+
+\usepackage[a4paper,left=19mm,right=19mm,top=24mm,bottom=21mm,
+            headheight=18pt,headsep=8mm,footskip=12mm]{{geometry}}
+\usepackage{{setspace}}
+\setstretch{{1.08}}
+\setlength{{\parindent}}{{0pt}}
+\setlength{{\parskip}}{{5.5pt plus 1pt minus 1pt}}
+\emergencystretch=2.5em
+
+\usepackage{{titlesec}}
+\titleformat{{\section}}
+  {{\sffamily\bfseries\fontsize{{20}}{{24}}\selectfont\color{{Ink}}}}
+  {{}}{{0pt}}{{}}
+\titleformat{{\subsection}}
+  {{\sffamily\bfseries\fontsize{{13.2}}{{16}}\selectfont\color{{Brand}}}}
+  {{}}{{0pt}}{{}}
+\titleformat{{\subsubsection}}
+  {{\sffamily\bfseries\fontsize{{10.7}}{{13.5}}\selectfont\color{{InkSoft}}}}
+  {{}}{{0pt}}{{}}
+\titlespacing*{{\section}}{{0pt}}{{0pt}}{{13pt}}
+\titlespacing*{{\subsection}}{{0pt}}{{17pt}}{{6pt}}
+\titlespacing*{{\subsubsection}}{{0pt}}{{12pt}}{{4pt}}
+\newcommand{{\sectionbreak}}{{\clearpage}}
+
+\usepackage{{fancyhdr}}
+\pagestyle{{fancy}}
+\fancyhf{{}}
+\fancyhead[L]{{\sffamily\fontsize{{6.6}}{{8}}\selectfont\color{{Muted}}Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift}}
+\fancyhead[R]{{}}
+\fancyfoot[L]{{\sffamily\fontsize{{6.6}}{{8}}\selectfont\color{{Muted}}\nouppercase{{\leftmark}}}}
+\fancyfoot[R]{{\sffamily\fontsize{{7.6}}{{9}}\selectfont\color{{Muted}}Seite \thepage}}
+\renewcommand{{\headrulewidth}}{{0.35pt}}
+\renewcommand{{\footrulewidth}}{{0.35pt}}
+\renewcommand{{\headrule}}{{\hbox to\headwidth{{\color{{Rule}}\leaders\hrule height \headrulewidth\hfill}}}}
+\renewcommand{{\footrule}}{{\hbox to\headwidth{{\color{{Rule}}\leaders\hrule height \footrulewidth\hfill}}}}
+\renewcommand{{\sectionmark}}[1]{{\markboth{{#1}}{{}}}}
+\fancypagestyle{{plain}}{{%
+  \fancyhf{{}}
+  \fancyfoot[C]{{\sffamily\fontsize{{7.6}}{{9}}\selectfont\color{{Muted}}Seite \thepage}}
+  \renewcommand{{\headrulewidth}}{{0pt}}
+  \renewcommand{{\footrulewidth}}{{0.35pt}}
+}}
+
+\usepackage{{amsmath,amssymb}}
+\setlength{{\abovedisplayskip}}{{10pt plus 2pt minus 2pt}}
+\setlength{{\belowdisplayskip}}{{11pt plus 2pt minus 2pt}}
+\setlength{{\abovedisplayshortskip}}{{8pt plus 2pt}}
+\setlength{{\belowdisplayshortskip}}{{9pt plus 2pt}}
+\setlength{{\jot}}{{6pt}}
+\allowdisplaybreaks[1]
+\newcommand{{\mathbox}}[1]{{%
+  \begingroup\setlength{{\fboxsep}}{{8pt}}%
+  \colorbox{{Wash}}{{\ensuremath{{\displaystyle #1}}}}\endgroup}}
+
+\usepackage{{booktabs,longtable,array,tabularx,colortbl}}
+\arrayrulecolor{{Rule}}
+\renewcommand{{\arraystretch}}{{1.16}}
+\setlength{{\tabcolsep}}{{5pt}}
+\usepackage{{etoolbox}}
+\AtBeginEnvironment{{longtable}}{{\small\rowcolors{{2}}{{Wash}}{{white}}}}
+\AtBeginEnvironment{{table}}{{\small}}
+
+\usepackage{{enumitem}}
+\setlist[itemize]{{leftmargin=17pt,itemsep=2.5pt,topsep=4pt}}
+\setlist[enumerate]{{leftmargin=19pt,itemsep=2.5pt,topsep=4pt}}
+\setlist[itemize,1]{{label=\textcolor{{Brand}}{{\small\textbullet}}}}
+
+\usepackage[most]{{tcolorbox}}
+\renewenvironment{{quote}}
+  {{\begin{{tcolorbox}}[
+      enhanced,
+      breakable,
+      colback=Wash,
+      colframe=Brand,
+      boxrule=0pt,
+      leftrule=2.2pt,
+      arc=0pt,
+      left=8pt,right=8pt,top=6pt,bottom=6pt,
+      before skip=8pt,after skip=9pt
+    ]\small\color{{InkSoft}}}}
+  {{\end{{tcolorbox}}}}
+
+\definecolor{{shadecolor}}{{HTML}}{{F4F7F8}}
+\usepackage{{fvextra}}
+\fvset{{fontsize=\scriptsize,breaklines=true,breakanywhere=true,
+       frame=single,rulecolor=\color{{Rule}},framesep=5pt}}
+
+\usepackage{{caption}}
+\captionsetup{{font=small,labelfont={{bf,color=InkSoft}},textfont={{color=Muted}},skip=6pt}}
+\usepackage{{graphicx}}
+\setkeys{{Gin}}{{width=\linewidth,height=0.72\textheight,keepaspectratio}}
+
+\usepackage{{hyperref}}
+\usepackage{{xurl}}
+\urlstyle{{tt}}
+\Urlmuskip=0mu plus 1mu
+\hypersetup{{
+  pdftitle={{{DOKUMENTTITEL}}},
+  pdfauthor={{Nobis Analytics}},
+  pdfsubject={{Mathematische Spezifikation der Projektbewertung}},
+  colorlinks=true,
+  linkcolor=Brand,
+  urlcolor=Brand,
+  citecolor=Brand,
+  bookmarksopen=true,
+  bookmarksnumbered=false
+}}
+
+% --- Individuelles Deckblatt ---------------------------------------------
+\makeatletter
+\renewcommand{{\maketitle}}{{%
+  \begin{{titlepage}}
+    \thispagestyle{{empty}}
+    \vspace*{{15mm}}
+    {{\sffamily\bfseries\fontsize{{10}}{{12}}\selectfont\color{{Brand}}TEA-CFM\par}}
+    \vspace{{10mm}}
+    {{\sffamily\bfseries\fontsize{{25}}{{30}}\selectfont\color{{Ink}}
+      Dokumentation Cash-Flow-Model -\par}}
+    \vspace{{5mm}}
+    {{\sffamily\bfseries\fontsize{{17}}{{21}}\selectfont\color{{Brand}}
+      Rechenmodell und Berechnungsvorschrift\par}}
+    \vspace{{11mm}}
+    {{\color{{Brand}}\rule{{56mm}}{{2.2pt}}\par}}
+    \vspace{{11mm}}
+    {{\sffamily\fontsize{{12}}{{17}}\selectfont\color{{InkSoft}}
+      {tagline}\par}}
+    \vfill
+    \begin{{tcolorbox}}[
+      colback=Wash,colframe=Rule,boxrule=0.5pt,arc=1.5pt,
+      left=9pt,right=9pt,top=8pt,bottom=8pt,width=\textwidth
+    ]
+      {{\sffamily\fontsize{{9.2}}{{13}}\selectfont\color{{InkSoft}}
+      Wirtschaftlichkeitsrechnung für PV-Projekte nach dem
+      österreichischen EAG-Marktprämienmodell\\[4pt]
+      Stand: {stand} · erzeugt aus
+      \texttt{{docs/rechenmodell/rechenmodell.md}}}}
+    \end{{tcolorbox}}
+  \end{{titlepage}}
+  \setcounter{{page}}{{1}}
+}}
+\makeatother
+'''
+
+
+def _markdown_fuer_pandoc(quelle: Path) -> tuple[str, str]:
+    markdown = quelle.read_text(encoding="utf-8")
+    tagline = "Mathematische Spezifikation der Projektbewertung und Gebotsanalyse"
+    if markdown.startswith("% "):
+        kopf, _, markdown = markdown.partition("\n")
+        tagline = kopf[2:].strip()
+
+    metadata = f'''---
+title: "{DOKUMENTTITEL}"
+author: "Nobis Analytics"
+date: "{date.today().strftime('%d.%m.%Y')}"
+lang: de-DE
+---
+
+'''
+    return metadata + markdown, tagline
+
+
+_TEXTTT = re.compile(r"\\texttt\{([^{}]*)\}")
+
+
+def _mache_codepfade_umbrechbar(tex_pfad: Path) -> None:
+    """Ersetzt lange Dateipfade durch xurl-Ausdrücke mit Umbruchstellen.
+
+    Pandoc setzt Inline-Code grundsätzlich als ``\\texttt``. In schmalen
+    Tabellenspalten sind Pfade mit Unterstrichen dann untrennbar. ``xurl``
+    erlaubt saubere Umbrüche an Slash, Punkt und Unterstrich, ohne den
+    sichtbaren Text zu verändern.
+    """
+    tex = tex_pfad.read_text(encoding="utf-8")
+
+    def ersetzen(treffer: re.Match[str]) -> str:
+        inhalt = treffer.group(1)
+        roh = inhalt.replace(r"\_", "_").replace(r"\ ", " ")
+        if "/" not in roh:
+            return treffer.group(0)
+
+        if roh.startswith("python "):
+            return r"\texttt{python }\nolinkurl{" + roh[7:] + "}"
+        if ": " in roh:
+            pfad, zusatz = roh.split(": ", 1)
+            zusatz_tex = zusatz.replace("_", r"\_")
+            return r"\nolinkurl{" + pfad + r"}: \texttt{" + zusatz_tex + "}"
+        return r"\nolinkurl{" + roh + "}"
+
+    tex_pfad.write_text(_TEXTTT.sub(ersetzen, tex), encoding="utf-8")
+
+
+def baue_pdf(
+    quelle: Path = QUELLE,
+    tex_ziel: Path = TEX_ZIEL,
+    pdf_ziel: Path = PDF_ZIEL,
+) -> Path:
+    pandoc = _werkzeug("pandoc")
+    latexmk = _werkzeug("latexmk")
+    _werkzeug("xelatex")
+    erzeuge_diagramm(DIAGRAMM)
+
+    markdown, tagline = _markdown_fuer_pandoc(quelle)
+    with tempfile.TemporaryDirectory(prefix="rechenmodell-build-") as tmp:
+        tmpdir = Path(tmp)
+        md_tmp = tmpdir / "rechenmodell_build.md"
+        preamble = tmpdir / "rechenmodell_preamble.tex"
+        md_tmp.write_text(markdown, encoding="utf-8")
+        preamble.write_text(_preamble(tagline), encoding="utf-8")
+
+        tex_ziel.parent.mkdir(parents=True, exist_ok=True)
+        _run(
+            [
+                pandoc,
+                str(md_tmp),
+                "--standalone",
+                "--from=markdown+tex_math_dollars+raw_tex+link_attributes",
+                "--to=latex",
+                "--toc",
+                "--toc-depth=3",
+                "--top-level-division=section",
+                "--resource-path",
+                str(HIER),
+                "--include-in-header",
+                str(preamble),
+                "--variable=documentclass:article",
+                "--variable=classoption:10pt",
+                "--variable=papersize:a4",
+                "--variable=lang:de-DE",
+                "--variable=mainfont:Lato",
+                "--variable=sansfont:Lato",
+                "--variable=monofont:DejaVu Sans Mono",
+                "--variable=mathfont:STIXMath-Regular.otf",
+                "--output",
+                str(tex_ziel),
+            ],
+            cwd=HIER,
+        )
+        _mache_codepfade_umbrechbar(tex_ziel)
+
+        # latexmk benötigt alle relativen Bilder aus dem Dokumentverzeichnis.
+        _run(
+            [
+                latexmk,
+                "-xelatex",
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                "-file-line-error",
+                f"-outdir={tmpdir}",
+                str(tex_ziel),
+            ],
+            cwd=HIER,
+        )
+        gebaut = tmpdir / f"{tex_ziel.stem}.pdf"
+        if not gebaut.exists():
+            raise BuildFehler("XeLaTeX wurde ausgeführt, aber kein PDF erzeugt.")
+        shutil.copy2(gebaut, pdf_ziel)
+
+    return pdf_ziel
+
+
+def _argumente() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", type=Path, default=QUELLE)
+    parser.add_argument("--tex", type=Path, default=TEX_ZIEL)
+    parser.add_argument("--pdf", type=Path, default=PDF_ZIEL)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _argumente()
+    try:
+        pdf = baue_pdf(args.source.resolve(), args.tex.resolve(), args.pdf.resolve())
+    except BuildFehler as fehler:
+        print(f"FEHLER: {fehler}", file=sys.stderr)
+        return 1
+
+    print(f"geschrieben: {TEX_ZIEL.name}")
+    print(f"geschrieben: {DIAGRAMM.name}")
+    print(f"geschrieben: {pdf.name} ({pdf.stat().st_size / 1024:.0f} kB)")
+    return 0
+
+
 if __name__ == "__main__":
-    pfad = baue_pdf()
-    groesse_kb = pfad.stat().st_size / 1024
-    print(f"geschrieben: {pfad} ({groesse_kb:,.0f} kB)".replace(",", "."))
-    sys.exit(0)
+    raise SystemExit(main())
