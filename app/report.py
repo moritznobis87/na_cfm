@@ -848,14 +848,18 @@ def build_pdf_report(inputs: ReportInputs) -> bytes:
     # ------------------------------------------------------- Management Summary
     story.append(_Kapitel("1", txt("bericht.kapitel_1_titel")))
     story.append(Spacer(1, 0.2 * cm))
-    verkaufspreis_eur = inputs.npv_eur + kpis.eigenkapital_eur
+    # Equity Value = Barwert der kuenftigen Eigenkapital-Cashflows (der NPV
+    # enthaelt den Eigenkapitaleinsatz des Jahres 0 als Abfluss).
+    # Enterprise Value = Equity Value + aufgenommenes Fremdkapital.
+    equity_value_eur = inputs.npv_eur + kpis.eigenkapital_eur
+    fremdkapital_eur = kpis.capex_total_eur - kpis.eigenkapital_eur
     story.append(_kennzahlen_kacheln([
-        ("EK-RENDITE (IRR)", fmt_pct(kpis.equity_irr)),
+        ("EQUITY IRR", fmt_pct(kpis.equity_irr)),
         (f"NPV BEI {_de(inputs.diskontsatz_pct * 100, 1)} %",
          fmt_eur(inputs.npv_eur)),
-        ("VERKAUFSPREIS", fmt_eur(verkaufspreis_eur)),
+        ("EQUITY VALUE", fmt_eur(equity_value_eur)),
+        ("ENTERPRISE VALUE", fmt_eur(equity_value_eur + fremdkapital_eur)),
         ("CAPEX", fmt_eur(kpis.capex_total_eur)),
-        ("MIN. DSCR", fmt_dscr(kpis.dscr_min)),
     ]))
     story.append(Spacer(1, 0.35 * cm))
 

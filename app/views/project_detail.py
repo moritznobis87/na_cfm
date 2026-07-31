@@ -151,22 +151,29 @@ def render_project_dashboard(
     )
     npv_wert = npv_at(result.cashflow, npv_satz_pct / 100)
 
-    verkaufspreis_eur = npv_wert + kpis.eigenkapital_eur
+    # Equity Value: Barwert der kuenftigen Eigenkapital-Cashflows. Der
+    # NPV enthaelt den Eigenkapitaleinsatz des Jahres 0 als Abfluss;
+    # rechnet man ihn wieder hinzu, bleibt der Wert des Eigenkapitals.
+    equity_value_eur = npv_wert + kpis.eigenkapital_eur
+    # Enterprise Value = Eigenkapitalwert + Fremdkapital. Angesetzt wird
+    # die zum Bewertungsstichtag aufgenommene Kreditsumme (CAPEX
+    # abzueglich Eigenkapitaleinsatz).
+    fremdkapital_eur = kpis.capex_total_eur - kpis.eigenkapital_eur
+    enterprise_value_eur = equity_value_eur + fremdkapital_eur
     render_kpi_row(
         [
             (txt("oberflaeche.projekt_kpi_irr"), fmt_pct(kpis.equity_irr)),
             (txt("oberflaeche.projekt_kpi_npv_bei",
                 satz=fmt_number(npv_satz_pct, 2)), fmt_eur(npv_wert)),
-            (txt("oberflaeche.projekt_kpi_verkaufspreis"), fmt_eur(verkaufspreis_eur)),
+            (txt("oberflaeche.projekt_kpi_equity_value"), fmt_eur(equity_value_eur)),
+            (txt("oberflaeche.projekt_kpi_enterprise_value"),
+             fmt_eur(enterprise_value_eur)),
             (txt("oberflaeche.projekt_kpi_capex"), fmt_eur(kpis.capex_total_eur)),
-            (txt("oberflaeche.projekt_kpi_dscr_min"), fmt_dscr(kpis.dscr_min)),
         ],
         group="projekt",
     )
 
-    if kpis.dscr_min is not None and kpis.dscr_min < 1.0:
-        st.warning(txt("oberflaeche.projekt_dscr_warnung",
-                       dscr=fmt_dscr(kpis.dscr_min)))
+    _render_kovenanten_status(result)
 
     tab_cf, tab_erloese, tab_fin, tab_sens, tab_mc, tab_szen, tab_annahmen = st.tabs(
         [
@@ -194,6 +201,85 @@ def render_project_dashboard(
         _render_scenario_tab(result, file_path.stem, npv_satz_pct / 100)
     with tab_annahmen:
         _render_assumptions_tab(result)
+
+
+# ---------------------------------------------------------------------------
+# DSCR-Kovenanten (Cash Trap / Event of Default)
+# ---------------------------------------------------------------------------
+
+
+def _jahresliste(jahre: list[int], hoechstens: int = 8) -> str:
+    """Jahre als Aufzaehlung; lange Listen werden gekuerzt, damit die
+    Statuszeile nicht ueber mehrere Zeilen laeuft."""
+    if len(jahre) <= hoechstens:
+        return ", ".join(str(j) for j in jahre)
+    sichtbar = ", ".join(str(j) for j in jahre[:hoechstens])
+    return f"{sichtbar} … (+{len(jahre) - hoechstens})"
+
+
+def _render_kovenanten_status(result) -> None:
+    """Ampel zu den beiden DSCR-Schwellen des Kreditvertrags.
+
+    Die Kacheln zeigen bewusst keinen DSCR mehr - der einzelne Minimalwert
+    sagt wenig darueber aus, ob er eine Ausschuettungssperre oder eine
+    Nachschusspflicht ausloest. Genau das steht hier.
+    """
+    kovenanten = getattr(result, "kovenanten", None)
+    if kovenanten is None:
+        return
+
+    kopf = txt(
+        "oberflaeche.projekt_kovenanten_kopf",
+        dscr=fmt_dscr(kovenanten.dscr_min),
+        trap=fmt_dscr(kovenanten.schwelle_cash_trap),
+        eod=fmt_dscr(kovenanten.schwelle_event_of_default),
+    )
+
+    if not kovenanten.hat_cash_trap and not kovenanten.hat_event_of_default:
+        st.success(f"{kopf} {txt('oberflaeche.projekt_kovenanten_ok')}")
+        return
+
+    st.markdown(f"**{kopf}**")
+
+    if kovenanten.hat_cash_trap:
+        st.warning(
+            txt(
+                "oberflaeche.projekt_kovenanten_cash_trap",
+                anzahl=len(kovenanten.jahre_cash_trap),
+                jahre=_jahresliste(kovenanten.jahre_cash_trap),
+                trap=fmt_dscr(kovenanten.schwelle_cash_trap),
+            )
+        )
+
+    if kovenanten.hat_event_of_default:
+        st.error(
+            txt(
+                "oberflaeche.projekt_kovenanten_eod",
+                anzahl=len(kovenanten.jahre_event_of_default),
+                jahre=_jahresliste(kovenanten.jahre_event_of_default),
+                eod=fmt_dscr(kovenanten.schwelle_event_of_default),
+                betrag=fmt_eur(kovenanten.nachschuss_gesamt_eur),
+            )
+        )
+
+    # Kernaussage: Traegt sich der Nachschuss aus dem, was das Projekt
+    # zuvor selbst erwirtschaftet hat, oder braucht es Geld von aussen?
+    if kovenanten.nachschuss_gesamt_eur > 0:
+        if kovenanten.braucht_externes_kapital:
+            st.error(
+                txt(
+                    "oberflaeche.projekt_kovenanten_extern",
+                    extern=fmt_eur(kovenanten.nachschuss_extern_eur),
+                    intern=fmt_eur(kovenanten.nachschuss_intern_eur),
+                )
+            )
+        else:
+            st.info(
+                txt(
+                    "oberflaeche.projekt_kovenanten_intern",
+                    intern=fmt_eur(kovenanten.nachschuss_intern_eur),
+                )
+            )
 
 
 # ---------------------------------------------------------------------------

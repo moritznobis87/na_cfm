@@ -209,9 +209,10 @@ class TestKPIUndChartBugfixes:
         assert list(trace.y) == list(result.cashflow.data["steuer_eur"])
         assert list(trace.x) == list(result.cashflow.data["jahr"])
 
-    def test_verkaufspreis_ersetzt_lcoe_in_kpi_reihenfolge(self):
-        """KPI-Zeile im Projekt-Dashboard: EK-Rendite, NPV, Verkaufspreis,
-        CAPEX, DSCR (LCOE entfernt) - siehe app/views/project_detail.py."""
+    def test_kpi_reihenfolge_im_projekt_dashboard(self):
+        """KPI-Zeile: Equity IRR, NPV, Equity Value, Enterprise Value,
+        CAPEX - ohne LCOE und ohne DSCR-Kachel (siehe
+        app/views/project_detail.py)."""
         import pathlib
 
         quelle = pathlib.Path("app/views/project_detail.py").read_text(
@@ -219,36 +220,37 @@ class TestKPIUndChartBugfixes:
         )
         block = quelle[quelle.index("render_kpi_row(\n        [\n"):]
         block = block[:block.index("group=")]
-        reihenfolge = [
-            k for k in (
-                "projekt_kpi_irr", "projekt_kpi_npv_bei",
-                "projekt_kpi_verkaufspreis", "projekt_kpi_capex",
-                "projekt_kpi_dscr_min",
-            )
-            if k in block
-        ]
-        assert reihenfolge == [
+        erwartet = [
             "projekt_kpi_irr", "projekt_kpi_npv_bei",
-            "projekt_kpi_verkaufspreis", "projekt_kpi_capex",
-            "projekt_kpi_dscr_min",
+            "projekt_kpi_equity_value", "projekt_kpi_enterprise_value",
+            "projekt_kpi_capex",
         ]
+        assert [k for k in erwartet if k in block] == erwartet
         assert "projekt_kpi_lcoe" not in block
+        assert "projekt_kpi_dscr_min" not in block
         assert "calculate_lcoe" not in quelle
 
-    def test_verkaufspreis_ist_npv_plus_eigenkapital(self, project, global_assumptions):
+    def test_equity_und_enterprise_value(self, project, global_assumptions):
+        """Equity Value = NPV + Eigenkapitaleinsatz;
+        Enterprise Value = Equity Value + aufgenommenes Fremdkapital."""
         from engine import run_valuation
         from engine.kpis import npv_at
 
         result = run_valuation(project, global_assumptions)
+        kpis = result.kpis
         npv = npv_at(result.cashflow, 0.08)
-        erwartet = npv + result.kpis.eigenkapital_eur
 
-        # Dieselbe Formel wie in project_detail.py: NPV + Eigenkapital.
-        verkaufspreis = npv + result.kpis.eigenkapital_eur
-        assert verkaufspreis == pytest.approx(erwartet)
-        assert verkaufspreis > npv  # Eigenkapital ist immer positiv
+        equity_value = npv + kpis.eigenkapital_eur
+        fremdkapital = kpis.capex_total_eur - kpis.eigenkapital_eur
+        enterprise_value = equity_value + fremdkapital
 
-    def test_pdf_bericht_zeigt_verkaufspreis_nicht_lcoe(self, project, global_assumptions):
+        assert equity_value > npv          # Eigenkapital ist immer positiv
+        assert fremdkapital == pytest.approx(
+            kpis.capex_total_eur * (1 - project.eigenkapitalquote_pct)
+        )
+        assert enterprise_value == pytest.approx(equity_value + fremdkapital)
+
+    def test_pdf_bericht_zeigt_equity_value_nicht_lcoe(self, project, global_assumptions):
         import io
 
         from pypdf import PdfReader
@@ -261,7 +263,8 @@ class TestKPIUndChartBugfixes:
             text = "\n".join(
                 s.extract_text() for s in PdfReader(io.BytesIO(pdf)).pages
             )
-            assert "VERKAUFSPREIS" in text
+            assert "EQUITY VALUE" in text
+            assert "ENTERPRISE VALUE" in text
             assert "LCOE" not in text
         finally:
             services.delete_project(project.id)
@@ -317,3 +320,35 @@ class TestDokumentationsKnopf:
         # Der Schriftzug belegt nur einen Bruchteil der Originalhoehe.
         assert neu.height < original.height * 0.5
         assert neu.width < original.width
+
+
+class TestKovenantenStatus:
+    """DSCR-Schwellen im Projekt-Dashboard (siehe engine/covenants.py):
+    Die DSCR-Kachel wurde durch eine Statusaussage ersetzt, die auch
+    beantwortet, ob ein Nachschuss aus eigener Kraft gedeckt ist."""
+
+    def test_unauffaelliges_projekt_meldet_eingehaltene_schwellen(
+        self, at: AppTest
+    ):
+        oeffnen = [b for b in at.button if b.key and b.key.startswith("open_")]
+        oeffnen[0].click()
+        at.run()
+        assert not at.exception
+        texte = [s.value for s in at.success]
+        assert any("DSCR" in t for t in texte), texte
+
+    def test_verletzung_wird_als_fehler_ausgewiesen(
+        self, project, global_assumptions
+    ):
+        """Bei sehr hoher Fremdkapitalquote reicht der Cashflow den
+        Schuldendienst nicht - das muss als Nachschussbedarf mit
+        externem Kapital erscheinen."""
+        from engine import run_valuation
+
+        project.eigenkapitalquote_pct = 0.02
+        project.fremdkapitalzins_pct = 0.09
+        analyse = run_valuation(project, global_assumptions).kovenanten
+
+        assert analyse.hat_event_of_default
+        assert analyse.nachschuss_gesamt_eur > 0
+        assert analyse.braucht_externes_kapital

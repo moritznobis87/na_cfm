@@ -32,6 +32,7 @@ from .auktion import (
     vergleiche_familien,
 )
 from .cashflow import CashflowTimeseries
+from .covenants import KovenantAnalyse, analysiere_kovenanten
 from .io_ergebnis_excel import pipeline_ergebnis_excel
 from .models import (
     AnlagenTyp,
@@ -89,6 +90,8 @@ __all__ = [
     "DirektvermarktungsModus",
     "NegativeStundenRegel",
     "CashflowTimeseries",
+    "KovenantAnalyse",
+    "analysiere_kovenanten",
     "EffectiveAssumptions",
     "GlobalAssumptions",
     "KPIs",

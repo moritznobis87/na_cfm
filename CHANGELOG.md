@@ -1,5 +1,35 @@
 # Changelog
 
+## v4.25 – Bewertungskacheln und DSCR-Kovenanten (2026-07)
+
+- **KPI-Kacheln neu belegt** (Projekt-Dashboard und PDF-Bericht):
+  Equity IRR · NPV bei x % · **Equity Value** (bisher „Verkaufspreis") ·
+  **Enterprise Value** (neu: Equity Value + aufgenommenes Fremdkapital) ·
+  CAPEX. Die DSCR-Kachel entfällt – ein einzelner Minimalwert sagt nicht,
+  ob er eine Ausschüttungssperre oder eine Nachschusspflicht auslöst.
+- **Zwei DSCR-Kovenanten in den Globalen Annahmen** (Block Förderung/
+  Finanzierung), mit Excel-Roundtrip und marktüblichen Vorbelegungen:
+  - *Cash-Trap-DSCR* (1,10x): Darunter keine Ausschüttung; der freie
+    Cashflow bleibt als Reserve in der Gesellschaft.
+  - *Event-of-Default-DSCR* (1,00x): Darunter ist ein
+    Eigenkapitalnachschuss nötig (Equity Cure) – in Höhe des Betrags,
+    der den DSCR gerade wieder auf die Schwelle hebt.
+- **Neue Kovenantenprüfung** `engine/covenants.py`: wertet beide
+  Schwellen Jahr für Jahr aus und verfolgt dabei einen
+  Deckungswasserfall – einbehaltene Reserve, danach bereits
+  ausgeschüttetes (selbst erwirtschaftetes) Kapital, erst dann externes
+  Kapital. Die Cashflow-Rechnung selbst bleibt unberührt.
+- **Statusaussage im Projekt-Dashboard** unter den Kacheln: betroffene
+  Jahre je Schwelle sowie die Kernfrage, ob ein Nachschuss aus eigener
+  Kraft gedeckt ist oder ob die Gesellschaft innerhalb der Laufzeit
+  zusätzliches externes Kapital benötigt.
+- Dokumentation ergänzt: neues Kapitel 11.5 (Ereignisse,
+  Nachschussbetrag, Deckungswasserfall), Equity und Enterprise Value in
+  Kapitel 12.4, Symbolverzeichnis, Annahmenkatalog und Zuordnungstabelle;
+  PDF neu gesetzt (48 Seiten).
+- 12 neue Tests (10 Kovenanten gegen handgerechnete Erwartungswerte auf
+  einer synthetischen Zeitreihe, 2 UI); Suite: 249.
+
 ## v4.24 – Vollständige Dokumentation des Rechenweges (2026-07)
 
 - **Neue Rechenmodell-Dokumentation** unter `docs/rechenmodell/`: der
