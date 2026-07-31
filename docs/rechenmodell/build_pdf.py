@@ -37,7 +37,10 @@ QUELLE = HIER / "rechenmodell.md"
 TEX_ZIEL = HIER / "Rechenmodell.tex"
 PDF_ZIEL = HIER / "Rechenmodell.pdf"
 DIAGRAMM = HIER / "rechenweg.png"
-LOGO = HIER.parent.parent / "assets" / "valyze_logo.png"
+#: Bild- und Wortmarke fuer das Deckblatt (horizontale Fassung). Liegt
+#: die Datei nicht vor, setzt _logo_block() den Schriftzug typografisch;
+#: das Deckblatt traegt dann bewusst KEIN Bild statt eines falschen.
+LOGO = HIER.parent.parent / "assets" / "valyze_wortmarke.png"
 
 DOKUMENTTITEL = (
     "Dokumentation Cash-Flow-Model - "
@@ -189,11 +192,11 @@ def erzeuge_diagramm(ziel: Path = DIAGRAMM) -> Path:
 def _logo_block() -> str:
     """Markenzeile des Deckblatts.
 
-    Liegt das Logo unter ``assets/valyze_logo.png``, wird es gesetzt;
-    andernfalls tritt der Schriftzug an seine Stelle, damit der Build
-    auch ohne Bilddatei durchläuft. Der Pfad ist relativ zum
-    Dokumentverzeichnis, damit die erzeugte ``Rechenmodell.tex``
-    ausserhalb dieses Rechners uebersetzbar bleibt.
+    Liegt die Bild- und Wortmarke unter ``assets/valyze_wortmarke.png``,
+    wird sie gesetzt; andernfalls tritt der typografische Schriftzug an
+    ihre Stelle, damit der Build auch ohne Bilddatei durchläuft. Der Pfad
+    ist relativ zum Dokumentverzeichnis, damit die erzeugte
+    ``Rechenmodell.tex`` ausserhalb dieses Rechners uebersetzbar bleibt.
     """
     relativ = LOGO.relative_to(HIER.parent.parent)
     pfad = "/".join([".."] * 2 + list(relativ.parts))
