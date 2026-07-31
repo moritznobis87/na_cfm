@@ -1,14 +1,14 @@
 """
 Verdeckter Marken-Schalter: zwei vollstaendige Gestaltungen (Farben,
-Logo, Favicon, Kopfzeilentexte) hinterlegt - die aktuelle Nobis-
-Analytics-Gestaltung (Standard) und die vorherige Trianel-Gestaltung.
+Logo, Favicon, Kopfzeilentexte) hinterlegt - die aktuelle
+Valyze-Gestaltung (Standard) und die vorherige Trianel-Gestaltung.
 
 Aktivierung ueber den URL-Parameter ?marke=trianel, z.B.
 https://<app-url>/?marke=trianel - nirgends in der Oberflaeche
-verlinkt oder dokumentiert, daher "verdeckt". Zurueck zu Nobis
-Analytics: ?marke=nobis oder den Parameter aus der URL entfernen und
-neu laden (ein einmal gesetzter Wert bleibt sonst fuer die laufende
-Session bestehen, siehe aktive_marke_code()).
+verlinkt oder dokumentiert, daher "verdeckt". Zurueck zu Valyze:
+?marke=valyze oder den Parameter aus der URL entfernen und neu laden
+(ein einmal gesetzter Wert bleibt sonst fuer die laufende Session
+bestehen, siehe aktive_marke_code()).
 
 Nutzung (frueh im Entry-Point, vor set_page_config/apply_theme):
 
@@ -43,12 +43,12 @@ _ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 #: siehe dort fuer Herleitung/Kontrastwerte. Trianel-Werte sind die vor
 #: dem Rebrand (v4.15) verwendeten Originalwerte.
 MARKEN: dict[str, dict] = {
-    "nobis": {
-        "app_titel": "Nobis Analytics",
+    "valyze": {
+        "app_titel": "Valyze",
         "kopfzeile_titel": "PV-Projektbewertung",
-        "logo": _ASSETS_DIR / "nobis_logo.png",
+        "logo": _ASSETS_DIR / "valyze_logo.png",
         "logo_breite": 190,
-        "favicon": _ASSETS_DIR / "favicon.png",
+        "favicon": _ASSETS_DIR / "valyze_favicon.png",
         "farben": {
             "BRAND": "#167B88", "INK": "#14304F", "INK_SOFT": "#2B4F77",
             "MUTED": "#5C636A", "NEUTRAL": "#8A97A6",
@@ -69,14 +69,14 @@ MARKEN: dict[str, dict] = {
     },
 }
 
-STANDARD_MARKE = "nobis"
+STANDARD_MARKE = "valyze"
 _SESSION_KEY = "aktive_marke"
 _QUERY_PARAM = "marke"
 
 
 def aktive_marke_code() -> str:
     """Ermittelt die aktive Marke: URL-Parameter > laufende Session >
-    Standard (Nobis Analytics). Ein per URL gesetzter Wert wird in die
+    Standard (Valyze). Ein per URL gesetzter Wert wird in die
     Session uebernommen, damit er auch nach dem Wegfallen des
     Parameters (z.B. Klick auf einen internen Link) fuer den Rest der
     Sitzung bestehen bleibt."""

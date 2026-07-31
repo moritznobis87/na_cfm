@@ -119,7 +119,7 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\sffamily\fontsize{6.6}{8}\selectfont\color{Muted}Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift}
+\fancyhead[L]{\sffamily\fontsize{6.6}{8}\selectfont\color{Muted}Valyze · Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift}
 \fancyhead[R]{}
 \fancyfoot[L]{\sffamily\fontsize{6.6}{8}\selectfont\color{Muted}\nouppercase{\leftmark}}
 \fancyfoot[R]{\sffamily\fontsize{7.6}{9}\selectfont\color{Muted}Seite \thepage}
@@ -190,7 +190,7 @@
 \Urlmuskip=0mu plus 1mu
 \hypersetup{
   pdftitle={Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift},
-  pdfauthor={Nobis Analytics},
+  pdfauthor={Valyze},
   pdfsubject={Mathematische Spezifikation der Projektbewertung},
   colorlinks=true,
   linkcolor=Brand,
@@ -206,7 +206,7 @@
   \begin{titlepage}
     \thispagestyle{empty}
     \vspace*{15mm}
-    {\sffamily\bfseries\fontsize{10}{12}\selectfont\color{Brand}TEA-CFM\par}
+    \IfFileExists{../../assets/valyze_logo.png}{\includegraphics[height=16mm]{../../assets/valyze_logo.png}}{\sffamily\bfseries\fontsize{16}{20}\selectfont\color{Brand}VALYZE}\par
     \vspace{10mm}
     {\sffamily\bfseries\fontsize{25}{30}\selectfont\color{Ink}
       Dokumentation Cash-Flow-Model -\par}
@@ -226,7 +226,7 @@
       {\sffamily\fontsize{9.2}{13}\selectfont\color{InkSoft}
       Wirtschaftlichkeitsrechnung für PV-Projekte nach dem
       österreichischen EAG-Marktprämienmodell\\[4pt]
-      Stand: 30.07.2026 · erzeugt aus
+      Stand: 31.07.2026 · erzeugt aus
       \nolinkurl{docs/rechenmodell/rechenmodell.md}}
     \end{tcolorbox}
   \end{titlepage}
@@ -236,20 +236,20 @@
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
-\usepackage{bookmark}
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \urlstyle{same}
 \hypersetup{
   pdftitle={Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift},
-  pdfauthor={Nobis Analytics},
+  pdfauthor={Valyze},
   pdflang={de-DE},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 
 \title{Dokumentation Cash-Flow-Model - Rechenmodell und
 Berechnungsvorschrift}
-\author{Nobis Analytics}
-\date{30.07.2026}
+\author{Valyze}
+\date{31.07.2026}
 
 \begin{document}
 \maketitle
@@ -258,10 +258,12 @@ Berechnungsvorschrift}
 \setcounter{tocdepth}{3}
 \tableofcontents
 }
+\hypertarget{gegenstand-geltungsbereich-und-dokumentstruktur}{%
 \section{1 Gegenstand, Geltungsbereich und
-Dokumentstruktur}\label{gegenstand-geltungsbereich-und-dokumentstruktur}
+Dokumentstruktur}\label{gegenstand-geltungsbereich-und-dokumentstruktur}}
 
-\subsection{1.1 Zielsetzung}\label{zielsetzung}
+\hypertarget{zielsetzung}{%
+\subsection{1.1 Zielsetzung}\label{zielsetzung}}
 
 Dieses Dokument enthält die \textbf{formale Spezifikation der im
 Cash-Flow-Model implementierten Wirtschaftlichkeitsrechnung}. Sämtliche
@@ -296,7 +298,8 @@ Die Darstellung ermöglicht insbesondere
   Tests (Kapitel 18).
 \end{itemize}
 
-\subsection{1.2 Sachliche Abgrenzung}\label{sachliche-abgrenzung}
+\hypertarget{sachliche-abgrenzung}{%
+\subsection{1.2 Sachliche Abgrenzung}\label{sachliche-abgrenzung}}
 
 Gegenstand des Dokuments ist ausschließlich die fachliche und
 mathematische Rechenlogik. Die Softwarearchitektur wird in
@@ -307,8 +310,9 @@ als explizite Berechnungsvorschriften implementiert sind. Die
 Dokumentation stellt daher keine rechtliche oder steuerliche Würdigung
 dar.
 
+\hypertarget{aufbau-und-darstellungskonventionen}{%
 \subsection{1.3 Aufbau und
-Darstellungskonventionen}\label{aufbau-und-darstellungskonventionen}
+Darstellungskonventionen}\label{aufbau-und-darstellungskonventionen}}
 
 Die Kapitel zu den einzelnen Rechenmodulen folgen einer einheitlichen
 Struktur:
@@ -340,11 +344,13 @@ Modellannahmen und bewusste Vereinfachungen werden an der jeweiligen
 Berechnungsstelle gekennzeichnet und in Kapitel 17 konsolidiert.
 \end{quote}
 
+\hypertarget{mathematische-gesamtstruktur-des-bewertungsmodells}{%
 \section{2 Mathematische Gesamtstruktur des
-Bewertungsmodells}\label{mathematische-gesamtstruktur-des-bewertungsmodells}
+Bewertungsmodells}\label{mathematische-gesamtstruktur-des-bewertungsmodells}}
 
+\hypertarget{berechnungsarchitektur-und-datenfluss}{%
 \subsection{2.1 Berechnungsarchitektur und
-Datenfluss}\label{berechnungsarchitektur-und-datenfluss}
+Datenfluss}\label{berechnungsarchitektur-und-datenfluss}}
 
 Die Projektbewertung ist als gerichteter Datenfluss organisiert. Jedes
 Modul verwendet ausschließlich Eingangsparameter oder Ergebnisse
@@ -360,8 +366,9 @@ erfordern keine iterative Gleichungslösung.
 \caption{Berechnungsarchitektur der Projektbewertung}
 \end{figure}
 
+\hypertarget{bewertungsfunktion-und-hierarchisches-gleichungssystem}{%
 \subsection{2.2 Bewertungsfunktion und hierarchisches
-Gleichungssystem}\label{bewertungsfunktion-und-hierarchisches-gleichungssystem}
+Gleichungssystem}\label{bewertungsfunktion-und-hierarchisches-gleichungssystem}}
 
 Die Bewertung erfolgt aus Sicht der Eigenkapitalgeber auf Grundlage der
 periodischen Equity-Cashflows. Die mathematische Gesamtstruktur besteht
@@ -385,8 +392,9 @@ algebraisch möglich, würde jedoch die Abhängigkeiten zwischen
 physischen, marktlichen, betrieblichen, finanziellen und steuerlichen
 Größen verdecken.
 
+\hypertarget{barwertfunktion-als-mathematischer-ausgangspunkt}{%
 \subsubsection{2.2.1 Barwertfunktion als mathematischer
-Ausgangspunkt}\label{barwertfunktion-als-mathematischer-ausgangspunkt}
+Ausgangspunkt}\label{barwertfunktion-als-mathematischer-ausgangspunkt}}
 
 Für einen vorgegebenen Diskontsatz \(r\) ist der taggenaue Nettobarwert
 durch
@@ -405,8 +413,9 @@ definiert. \(d_0\) bezeichnet den Bewertungs- und Investitionszeitpunkt;
 festgelegtem Diskontsatz stellt \(\operatorname{XNPV}(r)\) die explizit
 auswertbare Barwertgröße des Modells dar.
 
+\hypertarget{interner-zinsfuuxdf-als-implizite-renditekennzahl}{%
 \subsubsection{2.2.2 Interner Zinsfuß als implizite
-Renditekennzahl}\label{interner-zinsfuuxdf-als-implizite-renditekennzahl}
+Renditekennzahl}\label{interner-zinsfuuxdf-als-implizite-renditekennzahl}}
 
 Der auf datierten Zahlungszeitpunkten basierende interne Zinsfuß (XIRR)
 ist nicht durch eine eigenständige Summenformel definiert. Er ergibt
@@ -423,8 +432,9 @@ exogen vorgegebenen Renditeanspruch; der interne Zinsfuß bestimmt
 demgegenüber den endogenen Diskontsatz, bei dem ihr Barwert null
 beträgt.
 
+\hypertarget{periodische-equity-cashflows}{%
 \subsubsection{2.2.3 Periodische
-Equity-Cashflows}\label{periodische-equity-cashflows}
+Equity-Cashflows}\label{periodische-equity-cashflows}}
 
 Am Investitionszeitpunkt gilt mit Investitionsvolumen \(I\),
 Fremdkapital \(D\) und Eigenkapitalquote \(e\):
@@ -457,8 +467,9 @@ Form geschrieben werden:
 }
 \]
 
+\hypertarget{substitution-von-erluxf6s-und-energieertrag}{%
 \subsubsection{2.2.4 Substitution von Erlös und
-Energieertrag}\label{substitution-von-erluxf6s-und-energieertrag}
+Energieertrag}\label{substitution-von-erluxf6s-und-energieertrag}}
 
 Für die Behandlung negativer Strompreise wird der Einspeisefaktor
 \(q_t\) definiert als
@@ -519,8 +530,9 @@ Aus der Gleichung ist die Wirkung der technischen und marktlichen
 Parameter auf den Projektbarwert unmittelbar ableitbar. Die übrigen
 Terme werden im Folgenden als eigenständige Teilmodelle spezifiziert.
 
+\hypertarget{substitution-der-betriebskosten}{%
 \subsubsection{2.2.5 Substitution der
-Betriebskosten}\label{substitution-der-betriebskosten}
+Betriebskosten}\label{substitution-der-betriebskosten}}
 
 Die gesamten Betriebskosten setzen sich aus leistungsbezogenen
 Standardpositionen, Gemeindeabgabe, Direktvermarktung und Pacht
@@ -545,8 +557,9 @@ von der installierten Leistung, der erzeugten Energiemenge, dem
 Marktwert oder dem Umsatz abhängen. Die vollständigen
 Fallunterscheidungen werden in Kapitel 8 definiert.
 
+\hypertarget{substitution-von-finanzierung-und-ertragsteuern}{%
 \subsubsection{2.2.6 Substitution von Finanzierung und
-Ertragsteuern}\label{substitution-von-finanzierung-und-ertragsteuern}
+Ertragsteuern}\label{substitution-von-finanzierung-und-ertragsteuern}}
 
 Zinsaufwand und Darlehensstand ergeben sich aus
 
@@ -581,8 +594,9 @@ Reihenfolge ihrer Implementierung; Kapitel 11 führt die Ergebnisse zum
 Equity-Cashflow zusammen, Kapitel 12 wertet die Barwert- und
 Renditekennzahlen aus.
 
+\hypertarget{reihenfolge-und-fachliche-abhuxe4ngigkeiten}{%
 \subsection{2.3 Reihenfolge und fachliche
-Abhängigkeiten}\label{reihenfolge-und-fachliche-abhuxe4ngigkeiten}
+Abhängigkeiten}\label{reihenfolge-und-fachliche-abhuxe4ngigkeiten}}
 
 Die Reihenfolge der Rechenmodule folgt aus den fachlichen Abhängigkeiten
 der jeweiligen Ausgangsgrößen:
@@ -631,7 +645,8 @@ Marktwert beziehungsweise vom Umsatz abhängen. Eine umgekehrte
 Abhängigkeit der Erlöse von den Betriebskosten ist nicht vorgesehen;
 algebraische Zirkelbezüge werden dadurch ausgeschlossen.
 
-\subsection{2.4 Parametrisierungsebenen}\label{parametrisierungsebenen}
+\hypertarget{parametrisierungsebenen}{%
+\subsection{2.4 Parametrisierungsebenen}\label{parametrisierungsebenen}}
 
 Das Modell unterscheidet zwischen projektbezogenen und globalen
 Parametern:
@@ -656,8 +671,9 @@ zusammen. Sämtliche nachgelagerten Rechenmodule verwenden ausschließlich
 diesen aufgelösten Satz. Dadurch bleibt jede Ergebnisgröße eindeutig auf
 ihre Parametrisierung zurückführbar.
 
+\hypertarget{marktsystemabhuxe4ngige-regelkonfiguration}{%
 \subsection{2.5 Marktsystemabhängige
-Regelkonfiguration}\label{marktsystemabhuxe4ngige-regelkonfiguration}
+Regelkonfiguration}\label{marktsystemabhuxe4ngige-regelkonfiguration}}
 
 Der Parameter \texttt{markt\_system} konfiguriert mehrere
 länderspezifische Regeln als konsistentes Ausgangspaket:
@@ -693,10 +709,12 @@ Der Länderschalter stellt somit eine konsistente Vorbelegung dar, ohne
 die Parametrisierung der Einzelregeln einzuschränken. Die grundlegende
 Cashflow-Systematik bleibt in beiden Marktsystemen unverändert.
 
+\hypertarget{notation-einheiten-und-konventionen}{%
 \section{3 Notation, Einheiten und
-Konventionen}\label{notation-einheiten-und-konventionen}
+Konventionen}\label{notation-einheiten-und-konventionen}}
 
-\subsection{3.1 Zeitindex}\label{zeitindex}
+\hypertarget{zeitindex}{%
+\subsection{3.1 Zeitindex}\label{zeitindex}}
 
 Der Index \(t\) bezeichnet das \textbf{Betriebsjahr}, gezählt ab der
 Inbetriebnahme:
@@ -730,7 +748,8 @@ Inbetriebnahmejahr \(y_0\):
 Diese Unterscheidung ist zentral: Preiskurven sind nach Kalenderjahr
 indiziert, Degradation und Kostenindexierung nach Betriebsjahr.
 
-\subsection{3.2 Symbolverzeichnis}\label{symbolverzeichnis}
+\hypertarget{symbolverzeichnis}{%
+\subsection{3.2 Symbolverzeichnis}\label{symbolverzeichnis}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
@@ -789,8 +808,9 @@ Szenariokurve \\
 \(r\) & Diskontsatz & -- & Einstellung \\
 \end{longtable}
 
+\hypertarget{einheiten-und-umrechnungen}{%
 \subsection{3.3 Einheiten und
-Umrechnungen}\label{einheiten-und-umrechnungen}
+Umrechnungen}\label{einheiten-und-umrechnungen}}
 
 Das Modell rechnet \textbf{intern konsequent in kWh und ct/kWh} und
 wandelt an den Rändern:
@@ -809,7 +829,8 @@ natürlicher Wertebereich (200 bis 900) nicht in eine 0-bis-1-Konvention
 passt; er wird als Prozentzahl geführt und in der Steuerformel durch 100
 geteilt.
 
-\subsection{3.4 Vorzeichenkonvention}\label{vorzeichenkonvention}
+\hypertarget{vorzeichenkonvention}{%
+\subsection{3.4 Vorzeichenkonvention}\label{vorzeichenkonvention}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -836,8 +857,9 @@ Tilgung \(\mathrm{CF}^{\mathrm{fin}}_t,\ t \geq 1\) & negativ &
 Abfluss \\
 \end{longtable}
 
+\hypertarget{kappungen-und-randwertbehandlung}{%
 \subsection{3.5 Kappungen und
-Randwertbehandlung}\label{kappungen-und-randwertbehandlung}
+Randwertbehandlung}\label{kappungen-und-randwertbehandlung}}
 
 Drei Operationen treten wiederholt auf und sind einheitlich definiert:
 
@@ -850,8 +872,9 @@ Drei Operationen treten wiederholt auf und sind einheitlich definiert:
 Für Kurvenzugriffe außerhalb des definierten Bereichs gilt durchgängig
 \textbf{Klemmen statt Extrapolieren} (Abschnitt 7.2).
 
+\hypertarget{schritt-0-aufluxf6sung-der-parameter}{%
 \section{4 Schritt 0 -- Auflösung der
-Parameter}\label{schritt-0-aufluxf6sung-der-parameter}
+Parameter}\label{schritt-0-aufluxf6sung-der-parameter}}
 
 \textbf{Zweck.} Aus Projektmaske und globalen Annahmen entsteht ein
 vollständiger, widerspruchsfreier Parametersatz.
@@ -859,8 +882,9 @@ vollständiger, widerspruchsfreier Parametersatz.
 \textbf{Codestelle.} \nolinkurl{engine/pipeline.py},
 \texttt{resolve\_assumptions()}.
 
+\hypertarget{uxfcbernahme-umrechnung-geschuxe4ftsregeln}{%
 \subsection{4.1 Übernahme, Umrechnung,
-Geschäftsregeln}\label{uxfcbernahme-umrechnung-geschuxe4ftsregeln}
+Geschäftsregeln}\label{uxfcbernahme-umrechnung-geschuxe4ftsregeln}}
 
 Der Merge ist überwiegend eine 1:1-Übernahme. Vier Stellen enthalten
 echte Rechenlogik:
@@ -895,7 +919,8 @@ bleibt die Bewertung auch nach Umbenennung oder Löschung eines
 referenzierten Szenarios ausführbar. Der verwendete Rückfallwert ist im
 aufgelösten Parametersatz transparent ausgewiesen.
 
-\subsection{4.2 Investitionsvolumen}\label{investitionsvolumen}
+\hypertarget{investitionsvolumen}{%
+\subsection{4.2 Investitionsvolumen}\label{investitionsvolumen}}
 
 Das Investitionsvolumen ist die Summe der neun Kostenkategorien der
 Projektmaske:
@@ -909,8 +934,9 @@ spezifisch je kWp -- so entspricht die Eingabe unmittelbar einem Angebot
 oder einer Kostenschätzung. Die spezifische Größe \(I/P\) wird nur zur
 Anzeige gebildet.
 
+\hypertarget{vollstuxe4ndigkeitspruxfcfung}{%
 \subsection{4.3
-Vollständigkeitsprüfung}\label{vollstuxe4ndigkeitspruxfcfung}
+Vollständigkeitsprüfung}\label{vollstuxe4ndigkeitspruxfcfung}}
 
 Zwei Konsistenzbedingungen werden bereits bei der Validierung erzwungen:
 
@@ -927,14 +953,16 @@ Zwei Konsistenzbedingungen werden bereits bei der Validierung erzwungen:
 \textbf{Ausgang.} \texttt{EffectiveAssumptions} mit rund 40 Feldern als
 einheitliche Eingangsstruktur sämtlicher nachgelagerter Rechenmodule.
 
-\section{5 Schritt 1 -- Zeitachse}\label{schritt-1-zeitachse}
+\hypertarget{schritt-1-zeitachse}{%
+\section{5 Schritt 1 -- Zeitachse}\label{schritt-1-zeitachse}}
 
 \textbf{Zweck.} Festlegen der Perioden und ihrer Anteilsfaktoren.
 
 \textbf{Codestelle.} \nolinkurl{engine/timeline.py},
 \texttt{build\_timeline()} und \texttt{erstjahr\_zins\_pro\_rata()}.
 
-\subsection{5.1 Perioden}\label{perioden}
+\hypertarget{perioden}{%
+\subsection{5.1 Perioden}\label{perioden}}
 
 Betriebsjahr \(t\) läuft von \(\mathrm{start}_t\) bis
 \(\mathrm{ende}_t\) mit
@@ -945,8 +973,9 @@ Jede Periode außer der ersten ist damit ein volles Kalenderjahr. Die
 erste Periode reicht vom Inbetriebnahmedatum bis zum Jahresende und ist
 bei unterjähriger Inbetriebnahme kürzer.
 
+\hypertarget{anteilsfaktor-der-produktion}{%
 \subsection{5.2 Anteilsfaktor der
-Produktion}\label{anteilsfaktor-der-produktion}
+Produktion}\label{anteilsfaktor-der-produktion}}
 
 \[ \pi_t = \min\left(\frac{\mathrm{Tage}(\mathrm{start}_t,\ \mathrm{ende}_t) + 1}{365},\ 1\right) \]
 
@@ -961,8 +990,9 @@ mengenabhängigen Erlöse und Kosten.
 nicht abgebildet (siehe Kapitel 17).
 \end{quote}
 
+\hypertarget{anteilsfaktor-der-zinsen}{%
 \subsection{5.3 Anteilsfaktor der
-Zinsen}\label{anteilsfaktor-der-zinsen}
+Zinsen}\label{anteilsfaktor-der-zinsen}}
 
 Für den Zinsaufwand des Anlaufjahres ist die Zinsmethode wählbar. Sie
 wirkt sich ausschließlich bei unterjähriger Inbetriebnahme aus; bei
@@ -987,14 +1017,16 @@ identisch.
 \textbf{Ausgang.} Zeitachse mit \(t\), Periodengrenzen, \(\pi_t\) und
 der Markierung des letzten Jahres.
 
-\section{6 Schritt 2 -- Energieertrag}\label{schritt-2-energieertrag}
+\hypertarget{schritt-2-energieertrag}{%
+\section{6 Schritt 2 -- Energieertrag}\label{schritt-2-energieertrag}}
 
 \textbf{Zweck.} Die eingespeiste Strommenge je Betriebsjahr.
 
 \textbf{Codestelle.} \nolinkurl{engine/energy.py},
 \texttt{calculate\_energy\_production()}.
 
-\subsection{6.1 Vorschrift}\label{vorschrift}
+\hypertarget{vorschrift}{%
+\subsection{6.1 Vorschrift}\label{vorschrift}}
 
 \[ E^{\mathrm{basis}} = P \cdot h \]
 
@@ -1002,7 +1034,8 @@ der Markierung des letzten Jahres.
 
 \[ E_t = E^{\mathrm{basis}} \cdot \phi_t \cdot \pi_t \cdot (1 - \sigma) \]
 
-\subsection{6.2 Erläuterung}\label{erluxe4uterung}
+\hypertarget{erluxe4uterung}{%
+\subsection{6.2 Erläuterung}\label{erluxe4uterung}}
 
 \begin{itemize}
 \tightlist
@@ -1035,8 +1068,9 @@ Risikoabschlag).
 
 \textbf{Ausgang.} \(\phi_t\) und \(E_t\) (kWh) je Betriebsjahr.
 
+\hypertarget{schritt-3-erluxf6se-nach-dem-marktpruxe4mienmodell}{%
 \section{7 Schritt 3 -- Erlöse nach dem
-Marktprämienmodell}\label{schritt-3-erluxf6se-nach-dem-marktpruxe4mienmodell}
+Marktprämienmodell}\label{schritt-3-erluxf6se-nach-dem-marktpruxe4mienmodell}}
 
 \textbf{Zweck.} Vergütungssatz und Erlös je Betriebsjahr, aufgeteilt in
 Markterlös und Marktprämie.
@@ -1049,7 +1083,8 @@ zusammengeführt. Die Berechnung gliedert sich in fünf Teilschritte:
 Kalenderjahr-Zuordnung, Kurvenzugriff, Inflationierung, Vergütungssatz,
 Mengenwirkung negativer Preise.
 
-\subsection{7.1 Kalenderjahr-Zuordnung}\label{kalenderjahr-zuordnung}
+\hypertarget{kalenderjahr-zuordnung}{%
+\subsection{7.1 Kalenderjahr-Zuordnung}\label{kalenderjahr-zuordnung}}
 
 \[ y_t = y_0 + t - 1 \]
 
@@ -1060,8 +1095,9 @@ greifen im selben Betriebsjahr folglich auf unterschiedliche
 Kurvenpunkte zu. Dies entspricht der kalenderzeitbezogenen Struktur
 einer Marktpreisprognose.
 
+\hypertarget{kurvenzugriff-mit-klemmung}{%
 \subsection{7.2 Kurvenzugriff mit
-Klemmung}\label{kurvenzugriff-mit-klemmung}
+Klemmung}\label{kurvenzugriff-mit-klemmung}}
 
 Für eine Kurve \(g\), die auf den Stützjahren
 \(\{y_{\min}, \dots, y_{\max}\}\) definiert ist:
@@ -1075,8 +1111,9 @@ den beobachteten Zeitraum hinaus nicht durch die zugrunde liegende
 Marktpreisstudie abgesichert wäre. Ist gar keine Kurve hinterlegt, gilt
 \(g \equiv 0\).
 
+\hypertarget{inflationierung-des-marktwertes}{%
 \subsection{7.3 Inflationierung des
-Marktwertes}\label{inflationierung-des-marktwertes}
+Marktwertes}\label{inflationierung-des-marktwertes}}
 
 Marktwert-Solar-Kurven aus Marktpreisstudien sind \textbf{reale} Werte
 auf der Preisbasis des Erscheinungsjahres \(y_B\). Für eine nominale
@@ -1102,8 +1139,9 @@ Für die Anwendung sind zwei Aspekte maßgeblich:
   zwei nominalen Größen statt.
 \end{enumerate}
 
+\hypertarget{verguxfctungssatz-gleitende-marktpruxe4mie}{%
 \subsection{7.4 Vergütungssatz (gleitende
-Marktprämie)}\label{verguxfctungssatz-gleitende-marktpruxe4mie}
+Marktprämie)}\label{verguxfctungssatz-gleitende-marktpruxe4mie}}
 
 Während der Förderdauer \(F\) erhält der Betreiber den höheren der
 beiden Werte, danach ausschließlich den Marktwert:
@@ -1133,8 +1171,9 @@ Zuschlagswert, wird die Differenz während der Förderdauer zugeschossen;
 liegt er darüber, ist die Prämie null. Nach Ablauf der Förderdauer ist
 \(p_t\) definitionsgemäß null.
 
+\hypertarget{wirkung-negativer-strompreise}{%
 \subsection{7.5 Wirkung negativer
-Strompreise}\label{wirkung-negativer-strompreise}
+Strompreise}\label{wirkung-negativer-strompreise}}
 
 In Stunden negativer Preise entfällt die Marktprämie. Modelliert wird
 das über den Anteil \(\nu^{\mathrm{roh}}_t\) der
@@ -1169,8 +1208,9 @@ Nach Ablauf der Förderdauer ist \(p_t = 0\); der Modus „Marktwert`` hat
 dann keine Wirkung mehr, während „Abregelung`` die Menge weiterhin
 kürzt.
 
+\hypertarget{interpretation-der-aufteilung}{%
 \subsection{7.6 Interpretation der
-Aufteilung}\label{interpretation-der-aufteilung}
+Aufteilung}\label{interpretation-der-aufteilung}}
 
 Die Zerlegung in \(R^{\mathrm{markt}}\) und \(R^{\mathrm{prämie}}\)
 ermöglicht eine ökonomische Zuordnung der Erlöse zu Markt und Förderung.
@@ -1181,7 +1221,8 @@ die Differenz zwischen Vergütungssatz und Marktwert der Marktprämie.
 \textbf{Ausgang.} \(y_t\), \(m^{\mathrm{real}}_t\), \(m_t\), \(s_t\),
 \(R_t\), \(R^{\mathrm{markt}}_t\), \(R^{\text{Prämie}}_t\).
 
-\section{8 Schritt 4 -- Betriebskosten}\label{schritt-4-betriebskosten}
+\hypertarget{schritt-4-betriebskosten}{%
+\section{8 Schritt 4 -- Betriebskosten}\label{schritt-4-betriebskosten}}
 
 \textbf{Zweck.} Alle laufenden Kosten je Betriebsjahr, sowohl als Summe
 als auch aufgeschlüsselt nach Einzelposition.
@@ -1217,8 +1258,9 @@ Pacht & €/kWp/Jahr oder \% vom Umsatz mit Mindestpacht &
 Kosteninflation \\
 \end{longtable}
 
+\hypertarget{allgemeiner-inflationsfaktor}{%
 \subsection{8.1 Allgemeiner
-Inflationsfaktor}\label{allgemeiner-inflationsfaktor}
+Inflationsfaktor}\label{allgemeiner-inflationsfaktor}}
 
 Für alle Positionen ohne eigene Preislogik gilt ein gemeinsamer
 Kosteninflationsfaktor. Eingaben verstehen sich als Preisstand bei
@@ -1226,8 +1268,9 @@ Inbetriebnahme, die Eskalation beginnt daher im zweiten Betriebsjahr:
 
 \[ \Theta_t = (1 + \kappa)^{\,(t-1)^{+}} \]
 
+\hypertarget{standard-betriebskostenpositionen}{%
 \subsection{8.2
-Standard-Betriebskostenpositionen}\label{standard-betriebskostenpositionen}
+Standard-Betriebskostenpositionen}\label{standard-betriebskostenpositionen}}
 
 Jede Position \(j\) trägt einen spezifischen Basiswert \(w_j\)
 (€/kWp/Jahr), ein Startjahr \(t^{\mathrm{start}}_j\), eine eigene
@@ -1246,8 +1289,9 @@ fortschreiben.
 Positionen mit identischer Bezeichnung werden aggregiert. Dadurch bleibt
 jede Bezeichnung in der Kostenaufschlüsselung eindeutig.
 
+\hypertarget{produktionsbasierte-positionen}{%
 \subsection{8.3 Produktionsbasierte
-Positionen}\label{produktionsbasierte-positionen}
+Positionen}\label{produktionsbasierte-positionen}}
 
 \textbf{Gemeindeabgabe} (je erzeugter kWh an die Standortgemeinde):
 
@@ -1270,7 +1314,8 @@ Preisniveau. Eine zusätzliche Kostenindexierung erfolgt nicht, da die
 Preisentwicklung bereits im nominalen Marktwert enthalten ist und
 andernfalls doppelt berücksichtigt würde.
 
-\subsection{8.4 Pacht}\label{pacht}
+\hypertarget{pacht}{%
+\subsection{8.4 Pacht}\label{pacht}}
 
 Die Pacht wird als eigenständige Kostenposition geführt, da sie abhängig
 von Vertragsmodell unterschiedlich bemessen wird.
@@ -1297,7 +1342,8 @@ Abhängigkeit begründet die Anordnung des Erlösmoduls vor dem
 Betriebskostenmodul.
 \end{quote}
 
-\subsection{8.5 Summe}\label{summe}
+\hypertarget{summe}{%
+\subsection{8.5 Summe}\label{summe}}
 
 \[ C_t = \sum_j C^{(j)}_t + C^{\mathrm{gem}}_t + C^{\mathrm{dv}}_t + C^{\mathrm{pacht}}_t \]
 
@@ -1305,14 +1351,16 @@ Betriebskostenmodul.
 die Grundlage der aufgeschlüsselten Kostendarstellung in Oberfläche,
 Excel- Export und PDF-Bericht.
 
-\section{9 Schritt 5 -- Finanzierung}\label{schritt-5-finanzierung}
+\hypertarget{schritt-5-finanzierung}{%
+\section{9 Schritt 5 -- Finanzierung}\label{schritt-5-finanzierung}}
 
 \textbf{Zweck.} Zins, Tilgung und Restschuld über die Kreditlaufzeit.
 
 \textbf{Codestelle.} \nolinkurl{engine/financing.py},
 \texttt{calculate\_financing()}.
 
-\subsection{9.1 Kapitalstruktur}\label{kapitalstruktur}
+\hypertarget{kapitalstruktur}{%
+\subsection{9.1 Kapitalstruktur}\label{kapitalstruktur}}
 
 \[ D = I \cdot (1 - e), \qquad EK = I \cdot e \]
 
@@ -1322,7 +1370,8 @@ Zwischenfinanzierung, keine Bauzeitzinsen und keine Disagio- oder
 Gebührenposition; entsprechende Kosten sind gegebenenfalls im CAPEX zu
 erfassen.
 
-\subsection{9.2 Konventionen}\label{konventionen}
+\hypertarget{konventionen}{%
+\subsection{9.2 Konventionen}\label{konventionen}}
 
 \begin{itemize}
 \tightlist
@@ -1338,7 +1387,8 @@ erfassen.
 
 \[ B_1 = D, \qquad B_{t+1} = \left(B_t - T_t\right)^{+} \]
 
-\subsection{9.3 Zinsaufwand}\label{zinsaufwand}
+\hypertarget{zinsaufwand}{%
+\subsection{9.3 Zinsaufwand}\label{zinsaufwand}}
 
 \[ Z_t = B_t \cdot i \cdot \left(f \cdot \mathbf{1}_{[t=1]} + \mathbf{1}_{[t>1]}\right) \quad \text{für } t \leq t^{\mathrm{ende}}, \qquad Z_t = 0 \text{ sonst} \]
 
@@ -1347,7 +1397,8 @@ Dabei ist \(f\) der Zins-Anteilsfaktor des Anlaufjahres aus Abschnitt
 
 \[ t^{\mathrm{ende}} = n + \mathbf{1}_{[\text{tilgungsfreies Anlaufjahr}]} \]
 
-\subsection{9.4 Tilgung}\label{tilgung}
+\hypertarget{tilgung}{%
+\subsection{9.4 Tilgung}\label{tilgung}}
 
 \textbf{Annuitätentilgung.} Die konstante Rate folgt der
 Standard-Annuität (identisch zu \texttt{PMT} in Tabellenkalkulationen):
@@ -1373,8 +1424,9 @@ Jahr auf die vollständige Kreditsumme berechnet.
 
 \[ \mathrm{DS}_t = Z_t + T_t \]
 
+\hypertarget{wechselwirkung-mit-dem-unterjuxe4hrigen-anlaufjahr}{%
 \subsection{9.5 Wechselwirkung mit dem unterjährigen
-Anlaufjahr}\label{wechselwirkung-mit-dem-unterjuxe4hrigen-anlaufjahr}
+Anlaufjahr}\label{wechselwirkung-mit-dem-unterjuxe4hrigen-anlaufjahr}}
 
 Der Anteilsfaktor \(f\) reduziert \textbf{ausschließlich die Zinslast}
 des ersten Jahres. Die Tilgung folgt unverändert der Annuitäts- bzw.
@@ -1391,7 +1443,8 @@ negativen Darlehensstand.
 \textbf{Ausgang.} \(Z_t\), \(T_t\), \(\mathrm{DS}_t\), \(B_t\)
 (Jahresanfang) und \(B_{t+1}\) (Jahresende).
 
-\section{10 Schritt 6 -- Ertragsteuern}\label{schritt-6-ertragsteuern}
+\hypertarget{schritt-6-ertragsteuern}{%
+\section{10 Schritt 6 -- Ertragsteuern}\label{schritt-6-ertragsteuern}}
 
 \textbf{Zweck.} Steuerliche Bemessungsgrundlage und Steuerzahlung je
 Jahr.
@@ -1403,8 +1456,9 @@ Zustandsfortschreibung auf: Der Verlustvortragsbestand einer Periode
 hängt vom Bestand der Vorperiode ab. Die Berechnung erfolgt daher
 sequenziell über die Zeitachse.
 
+\hypertarget{ergebnis-vor-abschreibung}{%
 \subsection{10.1 Ergebnis vor
-Abschreibung}\label{ergebnis-vor-abschreibung}
+Abschreibung}\label{ergebnis-vor-abschreibung}}
 
 \[ \mathrm{EBT}^{\mathrm{vA}}_t = R_t - C_t - Z_t \]
 
@@ -1413,7 +1467,8 @@ Betriebsausgaben), aber \textbf{vor} Abschreibung -- diese wird im
 nächsten Schritt modusabhängig abgezogen. Die Tilgung ist erfolgsneutral
 und geht korrekterweise nicht ein.
 
-\subsection{10.2 Abschreibung}\label{abschreibung}
+\hypertarget{abschreibung}{%
+\subsection{10.2 Abschreibung}\label{abschreibung}}
 
 \[ A_t = \frac{I}{n_{\mathrm{AfA}}} \cdot \mathbf{1}_{[\,t\, \leq\, n_{\mathrm{AfA}}\,]} \]
 
@@ -1422,8 +1477,9 @@ steuerliche Nutzungsdauer. Nach Ablauf der Nutzungsdauer ist das
 Wirtschaftsgut voll abgeschrieben; eine weitere Abschreibung wäre
 unzulässig und ist ausgeschlossen. Im Pauschalmodus gilt \(A_t = 0\).
 
+\hypertarget{modusabhuxe4ngige-parameter}{%
 \subsection{10.3 Modusabhängige
-Parameter}\label{modusabhuxe4ngige-parameter}
+Parameter}\label{modusabhuxe4ngige-parameter}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
@@ -1461,12 +1517,14 @@ Steuermesszahl und gemeindlichem Hebesatz \(H\):
 
 Bei einem Hebesatz von 400 \% ergibt das \(\tau = 14{,}0\,\%\).
 
+\hypertarget{steuerliches-ergebnis-vor-verlustvortrag}{%
 \subsection{10.4 Steuerliches Ergebnis vor
-Verlustvortrag}\label{steuerliches-ergebnis-vor-verlustvortrag}
+Verlustvortrag}\label{steuerliches-ergebnis-vor-verlustvortrag}}
 
 \[ G_t = \mathrm{EBT}^{\mathrm{vA}}_t - A_t - \Phi \]
 
-\subsection{10.5 Verlustvortrag}\label{verlustvortrag}
+\hypertarget{verlustvortrag}{%
+\subsection{10.5 Verlustvortrag}\label{verlustvortrag}}
 
 Nach österreichischem Recht (§ 8 Abs. 4 Z 2 KStG) sind Verluste zeitlich
 \textbf{unbegrenzt} vortragbar, in einem Gewinnjahr aber nur bis zur
@@ -1501,8 +1559,9 @@ Modell (Abgleich mit einer realen Projekt-Excel) berücksichtigt ihn
 ebenfalls nicht. Jedes Jahr wird unabhängig betrachtet.
 \end{quote}
 
+\hypertarget{ausweis-der-steuerlichen-zwischengruxf6uxdfen}{%
 \subsection{10.6 Ausweis der steuerlichen
-Zwischengrößen}\label{ausweis-der-steuerlichen-zwischengruxf6uxdfen}
+Zwischengrößen}\label{ausweis-der-steuerlichen-zwischengruxf6uxdfen}}
 
 Neben \(S_t\) werden \(A_t\), \(V_t\), \(G_t\), \(U_t\), \(V_{t+1}\) und
 \(G^{\mathrm{st}}_t\) ausgegeben. Der vollständige Ausweis dieser
@@ -1512,8 +1571,9 @@ vom Ergebnis vor Steuern zur tatsächlichen Steuerzahlung.
 \textbf{Ausgang.} \(A_t\), \(V_t\), \(G_t\), \(U_t\), \(V_{t+1}\),
 \(G^{\mathrm{st}}_t\), \(S_t\).
 
+\hypertarget{schritt-7-cashflow-rechnung}{%
 \section{11 Schritt 7 --
-Cashflow-Rechnung}\label{schritt-7-cashflow-rechnung}
+Cashflow-Rechnung}\label{schritt-7-cashflow-rechnung}}
 
 \textbf{Zweck.} Zusammenführung aller Zeitreihen zum Equity-Cashflow.
 
@@ -1525,8 +1585,9 @@ fachliche Annahmen zusammen. Die Trennung von Berechnung und Aggregation
 ermöglicht eine eindeutige Zuordnung etwaiger Abweichungen zum jeweils
 verantwortlichen Teilmodell.
 
+\hypertarget{investitionszeitpunkt-t-0}{%
 \subsection{\texorpdfstring{11.1 Investitionszeitpunkt
-\(t = 0\)}{11.1 Investitionszeitpunkt t = 0}}\label{investitionszeitpunkt-t-0}
+\(t = 0\)}{11.1 Investitionszeitpunkt t = 0}}\label{investitionszeitpunkt-t-0}}
 
 \[ \mathrm{CF}^{\mathrm{op}}_0 = 0, \qquad \mathrm{CF}^{\mathrm{inv}}_0 = -I, \qquad \mathrm{CF}^{\mathrm{fin}}_0 = D \]
 
@@ -1536,8 +1597,9 @@ Der Nettozahlungsmittelabfluss zum Zeitpunkt \(t=0\) entspricht damit
 dem \textbf{Eigenkapitaleinsatz}. Die Zeile trägt als Datum das
 Inbetriebnahmedatum -- sie ist der Bezugspunkt aller Diskontierungen.
 
+\hypertarget{betriebsjahre-t-geq-1}{%
 \subsection{\texorpdfstring{11.2 Betriebsjahre
-\(t \geq 1\)}{11.2 Betriebsjahre t \textbackslash geq 1}}\label{betriebsjahre-t-geq-1}
+\(t \geq 1\)}{11.2 Betriebsjahre t \textbackslash geq 1}}\label{betriebsjahre-t-geq-1}}
 
 \[ \mathrm{CF}^{\mathrm{op}}_t = R_t - C_t - Z_t - S_t \]
 
@@ -1553,8 +1615,9 @@ die Tilgung erscheint separat im Finanzierungs-Cashflow.
 der Eigenkapitalgeber} definiert. Er bildet die gemeinsame
 Datengrundlage für XNPV, XIRR und Amortisationszeit.
 
+\hypertarget{schuldendienstdeckungsgrad-dscr}{%
 \subsection{11.3 Schuldendienstdeckungsgrad
-(DSCR)}\label{schuldendienstdeckungsgrad-dscr}
+(DSCR)}\label{schuldendienstdeckungsgrad-dscr}}
 
 \[ \mathrm{CFADS}_t = R_t - C_t - S_t \]
 
@@ -1567,7 +1630,8 @@ erneut abgezogen. Für Perioden ohne Schuldendienst ist der DSCR nicht
 definiert. Diese Perioden werden bei der Ermittlung des Minimums und bei
 Verlaufsanalysen nicht berücksichtigt.
 
-\subsection{11.4 Ergebnisstruktur}\label{ergebnisstruktur}
+\hypertarget{ergebnisstruktur}{%
+\subsection{11.4 Ergebnisstruktur}\label{ergebnisstruktur}}
 
 Die Cashflow-Zeitreihe führt neben den Aggregaten alle Erklärgrößen mit:
 Produktion, Marktwert real und nominal, Vergütungssatz, Erlösaufteilung,
@@ -1579,8 +1643,9 @@ weiterzureichen.
 \textbf{Ausgang.} Vollständige Cashflow-Tabelle, Zeilen
 \(t = 0 \dots N\).
 
+\hypertarget{schritt-8-bewertungskennzahlen}{%
 \section{12 Schritt 8 --
-Bewertungskennzahlen}\label{schritt-8-bewertungskennzahlen}
+Bewertungskennzahlen}\label{schritt-8-bewertungskennzahlen}}
 
 \textbf{Zweck.} Ableitung der entscheidungsrelevanten Barwert-,
 Rendite-, Amortisations- und Finanzierungskennzahlen aus der datierten
@@ -1589,8 +1654,9 @@ Cashflow-Zeitreihe.
 \textbf{Codestelle.} \nolinkurl{engine/kpis.py} und
 \nolinkurl{engine/analytics.py} (\texttt{calculate\_lcoe}).
 
+\hypertarget{nettobarwert-bei-taggenauer-diskontierung-xnpv}{%
 \subsection{12.1 Nettobarwert bei taggenauer Diskontierung
-(XNPV)}\label{nettobarwert-bei-taggenauer-diskontierung-xnpv}
+(XNPV)}\label{nettobarwert-bei-taggenauer-diskontierung-xnpv}}
 
 Die in Abschnitt 2.2 eingeführte Barwertfunktion wird auf Act/365-Basis
 taggenau ausgewertet. Sie entspricht damit der Berechnungslogik der
@@ -1610,8 +1676,9 @@ Barwertkurve wertet dieselbe Funktion an 21 Stützstellen zwischen 0 \%
 und 10 \% in Schritten von 0,5 Prozentpunkten aus. Ein Nulldurchgang
 dieser Funktion entspricht einem internen Zinsfuß.
 
+\hypertarget{interner-zinsfuuxdf-bei-unregelmuxe4uxdfigen-zahlungszeitpunkten-xirr}{%
 \subsection{12.2 Interner Zinsfuß bei unregelmäßigen Zahlungszeitpunkten
-(XIRR)}\label{interner-zinsfuuxdf-bei-unregelmuxe4uxdfigen-zahlungszeitpunkten-xirr}
+(XIRR)}\label{interner-zinsfuuxdf-bei-unregelmuxe4uxdfigen-zahlungszeitpunkten-xirr}}
 
 Der Equity-IRR ist gemäß Abschnitt 2.2.2 als Nullstelle der
 XNPV-Funktion definiert:
@@ -1639,7 +1706,8 @@ tritt sie praktisch nicht auf; ausgewiesen wird die vom Verfahren
 gefundene Nullstelle im Suchintervall.
 \end{quote}
 
-\subsection{12.3 Amortisationszeit}\label{amortisationszeit}
+\hypertarget{amortisationszeit}{%
+\subsection{12.3 Amortisationszeit}\label{amortisationszeit}}
 
 \[ t^{\mathrm{PB}} = \min\left\{\,t \ :\ \mathrm{CF}^{\mathrm{kum}}_t \geq 0\,\right\} \]
 
@@ -1648,7 +1716,8 @@ Periode) und wird in vollen Betriebsjahren ausgewiesen. Erreicht der
 kumulierte Cashflow innerhalb der Betrachtungsdauer nie null, wird kein
 Wert ausgewiesen.
 
-\subsection{12.4 Weitere Kennzahlen}\label{weitere-kennzahlen}
+\hypertarget{weitere-kennzahlen}{%
+\subsection{12.4 Weitere Kennzahlen}\label{weitere-kennzahlen}}
 
 \[ EK = -\mathrm{CF}_0, \qquad I = -\mathrm{CF}^{\mathrm{inv}}_0 \]
 
@@ -1656,8 +1725,9 @@ Wert ausgewiesen.
 
 \[ \text{Spezifisches Invest} = \frac{I}{P} \quad \left[\text{€/kWp}\right] \]
 
+\hypertarget{stromgestehungskosten-lcoe}{%
 \subsection{12.5 Stromgestehungskosten
-(LCOE)}\label{stromgestehungskosten-lcoe}
+(LCOE)}\label{stromgestehungskosten-lcoe}}
 
 \[ v_t = (1 + r)^{-\frac{\Delta_t}{365}} \]
 
@@ -1678,8 +1748,9 @@ vergleichbar.
 \textbf{Ausgang.} Equity-IRR, NPV, Payback, Investitionsvolumen,
 Eigenkapitaleinsatz, minimaler DSCR, LCOE.
 
+\hypertarget{numerisches-anwendungsbeispiel}{%
 \section{13 Numerisches
-Anwendungsbeispiel}\label{numerisches-anwendungsbeispiel}
+Anwendungsbeispiel}\label{numerisches-anwendungsbeispiel}}
 
 Dieses Kapitel dokumentiert die numerische Reproduktion eines
 vollständig spezifizierten Beispielprojekts. Grundlage ist das
@@ -1690,7 +1761,8 @@ Alle Tabellen dieses Kapitels erzeugt
 \nolinkurl{tests/test_dokumentation.py} prüft, dass die abgedruckten
 Zahlen weiterhin dem Rechenergebnis entsprechen.
 
-\subsection{13.1 Eingangsgrößen}\label{eingangsgruxf6uxdfen}
+\hypertarget{eingangsgruxf6uxdfen}{%
+\subsection{13.1 Eingangsgrößen}\label{eingangsgruxf6uxdfen}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
@@ -1731,8 +1803,9 @@ Betriebsführung 3,00 €, Sonstiges 1,00 € -- zusammen 9,00 €/kWp/Jahr.
 Projektspezifisch: Pacht 5,263158 €/kWp/Jahr (fix), Gemeindeabgabe 2,00
 €/MWh, Direktvermarktung 1,00 €/MWh.
 
+\hypertarget{betriebsjahr-1-schritt-fuxfcr-schritt}{%
 \subsection{13.2 Betriebsjahr 1 Schritt für
-Schritt}\label{betriebsjahr-1-schritt-fuxfcr-schritt}
+Schritt}\label{betriebsjahr-1-schritt-fuxfcr-schritt}}
 
 \textbf{Schritt 1 -- Zeitachse.} Inbetriebnahme am 1. Januar 2027, also
 \(\pi_1 = 1\) und \(f = 1\); Kalenderjahr \(y_1 = 2027\).
@@ -1810,8 +1883,9 @@ Kein Vortragsbestand (\(V_1 = 0\)), also \(U_1 = 0\) und
 
 \[ \mathrm{CF}_0 = -2.915.100 + 2.332.080 = -583.020\ \text{€} \]
 
+\hypertarget{ergebniszeitreihe-ausgewuxe4hlte-jahre}{%
 \subsection{13.3 Ergebniszeitreihe (ausgewählte
-Jahre)}\label{ergebniszeitreihe-ausgewuxe4hlte-jahre}
+Jahre)}\label{ergebniszeitreihe-ausgewuxe4hlte-jahre}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1000}}
@@ -1885,7 +1959,8 @@ Drei Muster lassen sich daran ablesen:
   €/a) und Zinsen den Großteil des Ergebnisses aufzehren.
 \end{itemize}
 
-\subsection{13.4 Kennzahlen}\label{kennzahlen}
+\hypertarget{kennzahlen}{%
+\subsection{13.4 Kennzahlen}\label{kennzahlen}}
 
 \begin{longtable}[]{@{}ll@{}}
 \toprule\noalign{}
@@ -1903,8 +1978,9 @@ Payback (kumulierter Equity-CF \(\geq 0\)) & Jahr 8 \\
 Summe Erlöse über 30 Jahre & 10.725.258 € \\
 \end{longtable}
 
+\hypertarget{sensitivituxe4t-risiko-und-gebotsuntergrenze}{%
 \section{14 Sensitivität, Risiko und
-Gebotsuntergrenze}\label{sensitivituxe4t-risiko-und-gebotsuntergrenze}
+Gebotsuntergrenze}\label{sensitivituxe4t-risiko-und-gebotsuntergrenze}}
 
 \textbf{Codestelle.} \nolinkurl{engine/sensitivity.py} und
 \nolinkurl{engine/analytics.py}.
@@ -1915,7 +1991,8 @@ und rufen die vollständige Bewertungskette erneut auf. Sie kennen die
 internen Rechenmodule nicht und bleiben deshalb bei Änderungen an der
 Engine automatisch konsistent.
 
-\subsection{14.1 Treibermutationen}\label{treibermutationen}
+\hypertarget{treibermutationen}{%
+\subsection{14.1 Treibermutationen}\label{treibermutationen}}
 
 Ein Treiber \(\theta\) wird multiplikativ um den Faktor \(\lambda\)
 variiert:
@@ -1953,8 +2030,9 @@ Zeitpunkt, an dem der Marktwert den Zuschlagswert übersteigt, und im
 relativen Modus die Direktvermarktungskosten. Damit wird der
 vollständige fachliche Wirkungszusammenhang berücksichtigt.
 
+\hypertarget{eag-zuschlag-sensitivituxe4t}{%
 \subsection{14.2
-EAG-Zuschlag-Sensitivität}\label{eag-zuschlag-sensitivituxe4t}
+EAG-Zuschlag-Sensitivität}\label{eag-zuschlag-sensitivituxe4t}}
 
 Fünf Varianten des gebotenen Zuschlagswertes:
 
@@ -1964,7 +2042,8 @@ Für jede Variante wird die vollständige Bewertung neu gerechnet und IRR
 und NPV ausgewiesen. Der Konventionell-Abschlag wirkt weiterhin, da die
 Variante am gebotenen Wert ansetzt.
 
-\subsection{14.3 Tornado-Analyse}\label{tornado-analyse}
+\hypertarget{tornado-analyse}{%
+\subsection{14.3 Tornado-Analyse}\label{tornado-analyse}}
 
 Für jeden der sieben Treiber wird die EK-Rendite bei
 \(\lambda = 1 - \delta\) und \(\lambda = 1 + \delta\) berechnet
@@ -1977,7 +2056,8 @@ Das Tornado-Bild der Projektfinanzierung. Es beantwortet die Frage,
 welcher Parameter die Rendite am stärksten bewegt, und damit, wo
 Genauigkeit in der Datenbeschaffung am meisten wert ist.
 
-\subsection{14.4 IRR-Heatmap}\label{irr-heatmap}
+\hypertarget{irr-heatmap}{%
+\subsection{14.4 IRR-Heatmap}\label{irr-heatmap}}
 
 Zwei frei wählbare Treiber werden über ein Raster kombiniert. Für jede
 Achse ist eine treiberspezifische Spanne hinterlegt (z. B. ±20 \% beim
@@ -1993,7 +2073,8 @@ gerechnet:
 
 Das sind \(S^2\) vollständige Bewertungen (Vorbelegung 49).
 
-\subsection{14.5 Monte-Carlo-Simulation}\label{monte-carlo-simulation}
+\hypertarget{monte-carlo-simulation}{%
+\subsection{14.5 Monte-Carlo-Simulation}\label{monte-carlo-simulation}}
 
 Je Lauf \(k = 1 \dots K\) werden für die aktiven Treiber unabhängige
 multiplikative Faktoren gezogen:
@@ -2035,8 +2116,9 @@ IRR-Verteilung zusätzlich die Auktionsunsicherheit:
 
 Der zweite Faktor erhält den Konventionell-Abschlag des Projekts.
 
+\hypertarget{break-even-zuschlagswert-gebotsassistent}{%
 \subsection{14.6 Break-even-Zuschlagswert
-(Gebotsassistent)}\label{break-even-zuschlagswert-gebotsassistent}
+(Gebotsassistent)}\label{break-even-zuschlagswert-gebotsassistent}}
 
 Gesucht ist der kleinste anzulegende Wert, mit dem eine Ziel-EK-Rendite
 gerade noch erreicht wird -- die \textbf{wirtschaftliche Untergrenze}
@@ -2062,7 +2144,8 @@ Nicht berechenbare IRR-Werte werden in der Nullstellensuche konservativ
 als −100 \% behandelt, damit die Suche nicht an einem undefinierten Wert
 abbricht.
 
-\subsection{14.7 Szenarienvergleich}\label{szenarienvergleich}
+\hypertarget{szenarienvergleich}{%
+\subsection{14.7 Szenarienvergleich}\label{szenarienvergleich}}
 
 Dasselbe Projekt wird über alle hinterlegten Marktpreisszenarien
 gerechnet. Ausgetauscht werden je Szenario ausschließlich die
@@ -2070,8 +2153,9 @@ Marktwertkurve und die Negativmengenkurve; alle übrigen Parameter
 bleiben identisch. Verglichen werden IRR, NPV und Gesamterlös sowie die
 kumulierten Equity-Cashflow-Pfade.
 
+\hypertarget{empirisches-modell-der-eag-ausschreibungen}{%
 \section{15 Empirisches Modell der
-EAG-Ausschreibungen}\label{empirisches-modell-der-eag-ausschreibungen}
+EAG-Ausschreibungen}\label{empirisches-modell-der-eag-ausschreibungen}}
 
 \textbf{Zweck.} Aus den veröffentlichten Aggregaten vergangener
 Ausschreibungsrunden eine Verteilung der Zuschlagswerte schätzen, daraus
@@ -2081,7 +2165,8 @@ gewünschten Risikoneigung empfehlen.
 \textbf{Codestelle.} \nolinkurl{engine/auktion.py}, Daten in
 \nolinkurl{data/ausschreibungen.yaml}.
 
-\subsection{15.1 Fachlicher Rahmen}\label{fachlicher-rahmen}
+\hypertarget{fachlicher-rahmen}{%
+\subsection{15.1 Fachlicher Rahmen}\label{fachlicher-rahmen}}
 
 Die österreichischen EAG-Marktprämienausschreibungen für Photovoltaik
 funktionieren nach \textbf{Pay-as-Bid mit Gebotspreisreihung}: Gebote
@@ -2102,8 +2187,9 @@ ihr Gebot knapp unter den erwarteten Grenzzuschlag („bid shading``). Bei
 schwachem Wettbewerb liegen die Gebote nahe der Preisobergrenze; mit
 steigendem Wettbewerb sinken sie und verdichten sich.
 
+\hypertarget{datenlage-und-ihre-konsequenzen}{%
 \subsection{15.2 Datenlage und ihre
-Konsequenzen}\label{datenlage-und-ihre-konsequenzen}
+Konsequenzen}\label{datenlage-und-ihre-konsequenzen}}
 
 Veröffentlicht werden je Runde nur \textbf{Aggregate} der bezuschlagten
 Gebote: Minimum, mengengewichteter Mittelwert, Maximum sowie
@@ -2144,8 +2230,9 @@ oder überzeichnet war:
   geschätzt werden (Abschnitt 15.5).
 \end{itemize}
 
+\hypertarget{verteilungsfamilien-auf-0-c}{%
 \subsection{\texorpdfstring{15.3 Verteilungsfamilien auf
-\([0, c]\)}{15.3 Verteilungsfamilien auf {[}0, c{]}}}\label{verteilungsfamilien-auf-0-c}
+\([0, c]\)}{15.3 Verteilungsfamilien auf {[}0, c{]}}}\label{verteilungsfamilien-auf-0-c}}
 
 Alle Familien werden einheitlich über zwei Parameter beschrieben, damit
 sie unmittelbar vergleichbar sind und der Wettbewerbs-Link
@@ -2204,8 +2291,9 @@ knapp unterhalb des erwarteten Grenzzuschlags abbilden. Ihre
 prinzipielle Grenze: Masse \textbf{direkt an} der Obergrenze (wie in
 unterzeichneten Runden beobachtet) kann sie nicht abbilden.
 
+\hypertarget{trunkierter-erwartungswert}{%
 \subsection{15.4 Trunkierter
-Erwartungswert}\label{trunkierter-erwartungswert}
+Erwartungswert}\label{trunkierter-erwartungswert}}
 
 Für überzeichnete Runden ist der bedingte Erwartungswert unterhalb des
 Grenzzuschlags erforderlich. Er wird für alle Familien einheitlich über
@@ -2216,7 +2304,8 @@ geschlossene Form existiert:
 
 mit \(n = 400\) Stützstellen.
 
-\subsection{15.5 Anpassung je Runde}\label{anpassung-je-runde}
+\hypertarget{anpassung-je-runde}{%
+\subsection{15.5 Anpassung je Runde}\label{anpassung-je-runde}}
 
 Je Runde \(j\) werden zwei robuste Bedingungen an die Verteilung
 gestellt:
@@ -2261,7 +2350,8 @@ dem Kehrwert der Überzeichnung:
 Ein Fit-Residuum (Wurzel des mittleren quadratischen Restfehlers beider
 Bedingungen) wird je Runde mitgeführt und dient dem Familienvergleich.
 
-\subsection{15.6 Wettbewerbs-Link}\label{wettbewerbs-link}
+\hypertarget{wettbewerbs-link}{%
+\subsection{15.6 Wettbewerbs-Link}\label{wettbewerbs-link}}
 
 Über alle Runden hinweg wird der Zusammenhang zwischen
 Wettbewerbsintensität und Verteilungsform linear in den transformierten
@@ -2298,8 +2388,9 @@ Rundenschwankung der Fit-Parameter auch Kalibrierrauschen enthält (aus
 Aggregaten ist \(\kappa\) nur grob identifiziert).
 \end{quote}
 
+\hypertarget{familienvergleich-und-validierung}{%
 \subsection{15.7 Familienvergleich und
-Validierung}\label{familienvergleich-und-validierung}
+Validierung}\label{familienvergleich-und-validierung}}
 
 Die Auswahl der Verteilungsfamilie erfolgt anhand von drei
 Validierungskriterien:
@@ -2328,13 +2419,15 @@ Höchstzuschlags. Diese Referenz bildet den Vergleichsmaßstab für die
 Beurteilung, ob das Modell gegenüber einer einfachen Fortschreibung
 einen geringeren Prognosefehler erzielt.
 
+\hypertarget{prognose-und-gebotsempfehlung}{%
 \subsection{15.8 Prognose und
-Gebotsempfehlung}\label{prognose-und-gebotsempfehlung}
+Gebotsempfehlung}\label{prognose-und-gebotsempfehlung}}
 
 Zwei Modi stehen zur Verfügung.
 
+\hypertarget{modus-letzte-runde-gesetzt}{%
 \subsubsection{15.8.1 Modus „letzte Runde
-gesetzt``}\label{modus-letzte-runde-gesetzt}
+gesetzt``}\label{modus-letzte-runde-gesetzt}}
 
 Die zuletzt beobachtete Ausschreibung gilt als maßgeblich. Verwendet
 werden ihre gefittete Verteilung, ihr Grenzzuschlag und ihre
@@ -2353,8 +2446,9 @@ dessen Quantilslage innerhalb der Verteilung. Zur Zielwahrscheinlichkeit
 
 \[ b^{*}(z) = Q\left((1-z)\, q_c\right) \]
 
+\hypertarget{modus-prognose-der-nuxe4chsten-runde}{%
 \subsubsection{15.8.2 Modus „Prognose der nächsten
-Runde``}\label{modus-prognose-der-nuxe4chsten-runde}
+Runde``}\label{modus-prognose-der-nuxe4chsten-runde}}
 
 \textbf{Schritt 1: Punktprognosen per Differenzenextrapolation.} Für
 Grenzzuschlag und mengengewichteten Mittelwert wird die Zeitreihe der
@@ -2435,8 +2529,9 @@ gezogenen Grenzzuschlag verschoben. Die \textbf{Form} bleibt erhalten;
 ausschließlich die Lage folgt der Unsicherheit. Im Modus „letzte Runde``
 entfällt die Verschiebung.
 
+\hypertarget{deutschland-manuelle-vorgabe}{%
 \subsection{15.9 Deutschland: manuelle
-Vorgabe}\label{deutschland-manuelle-vorgabe}
+Vorgabe}\label{deutschland-manuelle-vorgabe}}
 
 Im deutschen EEG-Marktsystem entfällt das empirische Modell: Der
 erwartete Marktprämienzuschlag (anzulegender Wert) wird direkt als Zahl
@@ -2447,8 +2542,9 @@ Auktionssystematik methodisch nicht belastbar. Alles Weitere --
 Cashflow, Steuern, Kennzahlen -- ist identisch; nur die Herkunft von
 \(z\) unterscheidet sich.
 
+\hypertarget{portfolio--und-vergleichsrechnungen}{%
 \section{16 Portfolio- und
-Vergleichsrechnungen}\label{portfolio--und-vergleichsrechnungen}
+Vergleichsrechnungen}\label{portfolio--und-vergleichsrechnungen}}
 
 Über die Einzelprojektbewertung hinaus aggregiert die Anwendung über
 alle \textbf{aktiven} Projekte. Inaktive Projekte bleiben im
@@ -2484,14 +2580,16 @@ Cashflow-Komponente über alle Jahre und stellt sie als Wasserfall dar:
 Beide Identitäten gelten exakt -- sie sind die Probe darauf, dass die
 Cashflow-Aggregation vollständig ist.
 
+\hypertarget{modellannahmen-vereinfachungen-und-geltungsgrenzen}{%
 \section{17 Modellannahmen, Vereinfachungen und
-Geltungsgrenzen}\label{modellannahmen-vereinfachungen-und-geltungsgrenzen}
+Geltungsgrenzen}\label{modellannahmen-vereinfachungen-und-geltungsgrenzen}}
 
 Dieses Kapitel sammelt alle Stellen, an denen das Modell eine
 Entscheidung trifft, die über die reine Rechenvorschrift hinausgeht. Wer
 Ergebnisse interpretiert, sollte diese Liste kennen.
 
-\subsection{17.1 Zeit und Perioden}\label{zeit-und-perioden}
+\hypertarget{zeit-und-perioden}{%
+\subsection{17.1 Zeit und Perioden}\label{zeit-und-perioden}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -2519,7 +2617,8 @@ Zahlungsströme werden nicht abgebildet; die Diskontierung ist dennoch
 taggenau \\
 \end{longtable}
 
-\subsection{17.2 Erlöse}\label{erluxf6se}
+\hypertarget{erluxf6se}{%
+\subsection{17.2 Erlöse}\label{erluxf6se}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -2552,7 +2651,9 @@ A8 & Kein Eigenverbrauch, keine Speicher, keine Regelenergie- oder
 PPA-Erlöse & Reines Marktprämien-/Marktverkaufsmodell \\
 \end{longtable}
 
-\subsection{17.3 Kosten und Finanzierung}\label{kosten-und-finanzierung}
+\hypertarget{kosten-und-finanzierung}{%
+\subsection{17.3 Kosten und
+Finanzierung}\label{kosten-und-finanzierung}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -2584,7 +2685,8 @@ Beides ist gegebenenfalls über CAPEX bzw. eine OPEX-Position
 abzubilden \\
 \end{longtable}
 
-\subsection{17.4 Steuern}\label{steuern}
+\hypertarget{steuern}{%
+\subsection{17.4 Steuern}\label{steuern}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -2614,8 +2716,9 @@ auf Ausschüttungen & Betrachtung endet auf Ebene der
 Projektgesellschaft \\
 \end{longtable}
 
+\hypertarget{kennzahlen-und-auswertungen}{%
 \subsection{17.5 Kennzahlen und
-Auswertungen}\label{kennzahlen-und-auswertungen}
+Auswertungen}\label{kennzahlen-und-auswertungen}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -2645,7 +2748,8 @@ A22 & Portfolio-IRR als ungewichtetes Mittel & Keine kapitalgewichtete
 Portfoliorendite \\
 \end{longtable}
 
-\subsection{17.6 Auktionsmodell}\label{auktionsmodell}
+\hypertarget{auktionsmodell}{%
+\subsection{17.6 Auktionsmodell}\label{auktionsmodell}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
@@ -2675,7 +2779,8 @@ A27 & Verteilungsfamilie ist eine Modellwahl & Wird über Massentreue,
 Leave-one-out und Fit-Residuum geprüft, nicht gesetzt \\
 \end{longtable}
 
-\subsection{17.7 Daten}\label{daten}
+\hypertarget{daten}{%
+\subsection{17.7 Daten}\label{daten}}
 
 Die mitgelieferten Preiskurven sind plausible Platzhalter
 beziehungsweise Studienauszüge, keine für den Einzelfall validierten
@@ -2684,11 +2789,13 @@ aktuelle, lizenzierte Marktwert-Solar-Kurven zu ersetzen. Das Modell
 selbst ist davon unberührt -- es rechnet mit der Kurve, die hinterlegt
 ist.
 
+\hypertarget{nachvollziehbarkeit-und-verifikation}{%
 \section{18 Nachvollziehbarkeit und
-Verifikation}\label{nachvollziehbarkeit-und-verifikation}
+Verifikation}\label{nachvollziehbarkeit-und-verifikation}}
 
+\hypertarget{zuordnung-rechenschritt-zu-code-und-test}{%
 \subsection{18.1 Zuordnung Rechenschritt zu Code und
-Test}\label{zuordnung-rechenschritt-zu-code-und-test}
+Test}\label{zuordnung-rechenschritt-zu-code-und-test}}
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
@@ -2742,7 +2849,8 @@ Test
 \nolinkurl{app/components/charts.py} & \nolinkurl{tests/test_ui_smoke.py} \\
 \end{longtable}
 
-\subsection{18.2 Teststrategie}\label{teststrategie}
+\hypertarget{teststrategie}{%
+\subsection{18.2 Teststrategie}\label{teststrategie}}
 
 Die Einheitstests rechnen gegen \textbf{handgerechnete Erwartungswerte}
 auf einem bewusst vereinfachten Fixture-Projekt: flache Marktwertkurve
@@ -2763,8 +2871,9 @@ ohne Tests zu brechen. Die einzige Ausnahme ist
 \nolinkurl{tests/test_dokumentation.py}, der explizit prüft, ob die in
 Kapitel 13 abgedruckten Zahlen noch zum Beispielprojekt passen.
 
+\hypertarget{symbol-spaltenname-export}{%
 \subsection{18.3 Symbol, Spaltenname,
-Export}\label{symbol-spaltenname-export}
+Export}\label{symbol-spaltenname-export}}
 
 Die folgende Tabelle verbindet die Notation dieses Dokuments mit den
 Spaltennamen in Cashflow-Tabelle, Excel-Export und Oberfläche.
@@ -2805,8 +2914,9 @@ Symbol & Spalte in der Cashflow-Tabelle & Einheit \\
 \(\mathrm{DSCR}_t\) & \texttt{dscr} & -- \\
 \end{longtable}
 
+\hypertarget{plausibilisierungsfolge-fuxfcr-eine-unabhuxe4ngige-nachrechnung}{%
 \subsection{18.4 Plausibilisierungsfolge für eine unabhängige
-Nachrechnung}\label{plausibilisierungsfolge-fuxfcr-eine-unabhuxe4ngige-nachrechnung}
+Nachrechnung}\label{plausibilisierungsfolge-fuxfcr-eine-unabhuxe4ngige-nachrechnung}}
 
 Für eine unabhängige Reproduktion in einer Tabellenkalkulation empfiehlt
 sich die folgende Prüfsequenz:
@@ -2836,10 +2946,12 @@ Folgeperioden unterscheiden sich durch die in den Kapiteln 5 bis 10
 definierten zeitabhängigen Faktoren. Kapitel 13 dokumentiert diese
 Prüfung anhand des Beispielparametersatzes.
 
+\hypertarget{reproduzierbarer-dokumentationsaufbau}{%
 \section{19 Reproduzierbarer
-Dokumentationsaufbau}\label{reproduzierbarer-dokumentationsaufbau}
+Dokumentationsaufbau}\label{reproduzierbarer-dokumentationsaufbau}}
 
-\subsection{19.1 Generierung}\label{generierung}
+\hypertarget{generierung}{%
+\subsection{19.1 Generierung}\label{generierung}}
 
 \begin{verbatim}
 python docs/rechenmodell/build_pdf.py     # erzeugt Rechenmodell.pdf
@@ -2853,8 +2965,9 @@ das PDF. Erforderlich sind Pandoc, Graphviz, XeLaTeX und
 \texttt{latexmk}. Sämtliche mathematischen Ausdrücke werden im PDF als
 Vektorsatz ausgegeben.
 
+\hypertarget{pflege-der-fachlichen-quelle}{%
 \subsection{19.2 Pflege der fachlichen
-Quelle}\label{pflege-der-fachlichen-quelle}
+Quelle}\label{pflege-der-fachlichen-quelle}}
 
 Inhaltliche Änderungen werden ausschließlich in der Markdown-Quelle
 vorgenommen. Die verwendete Formelsyntax muss sowohl von KaTeX für die
@@ -2863,8 +2976,9 @@ unterstützt werden. Mehrzeilige Gleichungen können mit \texttt{aligned},
 Fallunterscheidungen mit \texttt{cases} gesetzt werden. Nicht
 unterstützte Ausdrücke führen zu einem reproduzierbaren Build-Fehler.
 
+\hypertarget{konsistenz-mit-der-implementierung}{%
 \subsection{19.3 Konsistenz mit der
-Implementierung}\label{konsistenz-mit-der-implementierung}
+Implementierung}\label{konsistenz-mit-der-implementierung}}
 
 Wird eine Rechenvorschrift in der Engine geändert, sind vier Stellen
 nachzuziehen:

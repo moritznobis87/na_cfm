@@ -1,4 +1,4 @@
-"""UI-Schicht der Nobis Analytics PV-Projektbewertung (Streamlit).
+"""UI-Schicht der Valyze PV-Projektbewertung (Streamlit).
 
 Struktur:
 - config.py      Pfade und app-weite Konstanten

@@ -37,6 +37,7 @@ QUELLE = HIER / "rechenmodell.md"
 TEX_ZIEL = HIER / "Rechenmodell.tex"
 PDF_ZIEL = HIER / "Rechenmodell.pdf"
 DIAGRAMM = HIER / "rechenweg.png"
+LOGO = HIER.parent.parent / "assets" / "valyze_logo.png"
 
 DOKUMENTTITEL = (
     "Dokumentation Cash-Flow-Model - "
@@ -185,8 +186,28 @@ def erzeuge_diagramm(ziel: Path = DIAGRAMM) -> Path:
     return ziel
 
 
+def _logo_block() -> str:
+    """Markenzeile des Deckblatts.
+
+    Liegt das Logo unter ``assets/valyze_logo.png``, wird es gesetzt;
+    andernfalls tritt der Schriftzug an seine Stelle, damit der Build
+    auch ohne Bilddatei durchläuft. Der Pfad ist relativ zum
+    Dokumentverzeichnis, damit die erzeugte ``Rechenmodell.tex``
+    ausserhalb dieses Rechners uebersetzbar bleibt.
+    """
+    relativ = LOGO.relative_to(HIER.parent.parent)
+    pfad = "/".join([".."] * 2 + list(relativ.parts))
+    return (
+        rf"\IfFileExists{{{pfad}}}"
+        rf"{{\includegraphics[height=16mm]{{{pfad}}}}}"
+        r"{\sffamily\bfseries\fontsize{16}{20}\selectfont\color{Brand}VALYZE}"
+        r"\par"
+    )
+
+
 def _preamble(tagline: str) -> str:
     stand = date.today().strftime("%d.%m.%Y")
+    logo_block = _logo_block()
     # Der Inhalt wird von Pandoc direkt in die erzeugte TeX-Datei kopiert.
     return rf'''
 % --- Dokumentdesign -------------------------------------------------------
@@ -226,7 +247,7 @@ def _preamble(tagline: str) -> str:
 \usepackage{{fancyhdr}}
 \pagestyle{{fancy}}
 \fancyhf{{}}
-\fancyhead[L]{{\sffamily\fontsize{{6.6}}{{8}}\selectfont\color{{Muted}}Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift}}
+\fancyhead[L]{{\sffamily\fontsize{{6.6}}{{8}}\selectfont\color{{Muted}}Valyze · Dokumentation Cash-Flow-Model - Rechenmodell und Berechnungsvorschrift}}
 \fancyhead[R]{{}}
 \fancyfoot[L]{{\sffamily\fontsize{{6.6}}{{8}}\selectfont\color{{Muted}}\nouppercase{{\leftmark}}}}
 \fancyfoot[R]{{\sffamily\fontsize{{7.6}}{{9}}\selectfont\color{{Muted}}Seite \thepage}}
@@ -297,7 +318,7 @@ def _preamble(tagline: str) -> str:
 \Urlmuskip=0mu plus 1mu
 \hypersetup{{
   pdftitle={{{DOKUMENTTITEL}}},
-  pdfauthor={{Nobis Analytics}},
+  pdfauthor={{Valyze}},
   pdfsubject={{Mathematische Spezifikation der Projektbewertung}},
   colorlinks=true,
   linkcolor=Brand,
@@ -313,7 +334,7 @@ def _preamble(tagline: str) -> str:
   \begin{{titlepage}}
     \thispagestyle{{empty}}
     \vspace*{{15mm}}
-    {{\sffamily\bfseries\fontsize{{10}}{{12}}\selectfont\color{{Brand}}TEA-CFM\par}}
+    {logo_block}
     \vspace{{10mm}}
     {{\sffamily\bfseries\fontsize{{25}}{{30}}\selectfont\color{{Ink}}
       Dokumentation Cash-Flow-Model -\par}}
@@ -352,7 +373,7 @@ def _markdown_fuer_pandoc(quelle: Path) -> tuple[str, str]:
 
     metadata = f'''---
 title: "{DOKUMENTTITEL}"
-author: "Nobis Analytics"
+author: "Valyze"
 date: "{date.today().strftime('%d.%m.%Y')}"
 lang: de-DE
 ---

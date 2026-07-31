@@ -1,4 +1,4 @@
-# Nobis Analytics – PV-Projektbewertung
+# Valyze – PV-Projektbewertung
 
 Wirtschaftlichkeitsrechnung für PV-Projekte nach dem **österreichischen
 EAG-Marktprämienmodell** (gleitende Marktprämie) – ausgerichtet am
