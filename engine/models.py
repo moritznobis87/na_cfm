@@ -409,6 +409,18 @@ class GlobalAssumptions(BaseModel):
     #: Inbetriebnahme nicht am 1. Januar erfolgt.
     zinsmethode: ZinsMethode = ZinsMethode.OESTERREICH
 
+    # DSCR-Kovenanten des Kreditvertrags (siehe engine/covenants.py).
+    # Sie veraendern die Cashflow-Rechnung nicht, sondern werden als
+    # Kovenantenpruefung darauf ausgewertet.
+    #: Cash Trap / Lock-up: Unterhalb dieses DSCR darf nicht mehr
+    #: ausgeschuettet werden; der freie Cashflow bleibt als Reserve in
+    #: der Gesellschaft. Marktueblich 1,10x.
+    dscr_cash_trap: float = Field(ge=0, default=1.10)
+    #: Event of Default: Unterhalb dieses DSCR liegt eine
+    #: Vertragsverletzung vor, die ueblicherweise durch eine
+    #: Eigenkapitaleinlage geheilt wird (Equity Cure). Marktueblich 1,00x.
+    dscr_event_of_default: float = Field(ge=0, default=1.00)
+
     # Steuer
     tax_modus: TaxModus = TaxModus.AFA_KOERPERSCHAFTSTEUER
     steuersatz_pct: float = Field(ge=0, le=1, default=0.25)
@@ -499,6 +511,8 @@ class EffectiveAssumptions(BaseModel):
     tilgungsart: TilgungsArt
     tilgungsfreies_anlaufjahr: bool
     zinsmethode: ZinsMethode
+    dscr_cash_trap: float
+    dscr_event_of_default: float
 
     tax_modus: TaxModus
     steuersatz_pct: float

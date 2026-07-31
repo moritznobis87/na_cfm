@@ -30,6 +30,12 @@ FAVICON_PATH = ASSETS_DIR / "valyze_favicon.png"
 #: texte.SPRACHEN fuer die Zuordnung Sprachcode -> Dateiname).
 FLAGS_DIR = ASSETS_DIR / "flags"
 
+#: Rechenweg-Dokumentation als PDF - wird ueber den Hilfe-Knopf der
+#: Kopfzeile zum Download angeboten. Erzeugt aus
+#: docs/rechenmodell/rechenmodell.md (siehe make dokumentation); fehlt
+#: die Datei, blendet die Kopfzeile den Knopf aus.
+DOKUMENTATION_PDF_PATH = ROOT_DIR / "docs" / "rechenmodell" / "Rechenmodell.pdf"
+
 APP_TITLE = "Valyze"
 
 def monate() -> list[str]:

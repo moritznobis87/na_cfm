@@ -18,6 +18,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from .cashflow import CashflowTimeseries, calculate_cashflow
+from .covenants import KovenantAnalyse, analysiere_kovenanten
 from .energy import calculate_energy_production
 from .financing import calculate_financing
 from .kpis import KPIs, calculate_kpis, calculate_npv_curve
@@ -88,6 +89,8 @@ def resolve_assumptions(
         tilgungsart=global_assumptions.tilgungsart,
         tilgungsfreies_anlaufjahr=global_assumptions.tilgungsfreies_anlaufjahr,
         zinsmethode=global_assumptions.zinsmethode,
+        dscr_cash_trap=global_assumptions.dscr_cash_trap,
+        dscr_event_of_default=global_assumptions.dscr_event_of_default,
         tax_modus=global_assumptions.tax_modus,
         steuersatz_pct=global_assumptions.steuersatz_pct,
         afa_nutzungsdauer_jahre=global_assumptions.afa_nutzungsdauer_jahre,
@@ -106,6 +109,10 @@ class ValuationResult:
     kpis: KPIs
     npv_curve: pd.DataFrame
     berechnet_am: datetime
+    #: Auswertung der DSCR-Kovenanten (Cash Trap, Event of Default) auf
+    #: der fertigen Cashflow-Zeitreihe - siehe engine/covenants.py. Die
+    #: Cashflow-Rechnung selbst bleibt davon unberuehrt.
+    kovenanten: KovenantAnalyse | None = None
 
 
 def run_valuation(
@@ -190,6 +197,11 @@ def run_valuation_from_assumptions(
     )
 
     kpis = calculate_kpis(cashflow)
+    kovenanten = analysiere_kovenanten(
+        cashflow.data,
+        assumptions.dscr_cash_trap,
+        assumptions.dscr_event_of_default,
+    )
     npv_curve = (
         calculate_npv_curve(cashflow) if compute_npv_curve else pd.DataFrame()
     )
@@ -201,4 +213,5 @@ def run_valuation_from_assumptions(
         kpis=kpis,
         npv_curve=npv_curve,
         berechnet_am=datetime.now(),
+        kovenanten=kovenanten,
     )

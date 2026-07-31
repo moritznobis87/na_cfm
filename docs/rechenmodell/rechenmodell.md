@@ -402,6 +402,9 @@ indiziert, Degradation und Kostenindexierung nach Betriebsjahr.
 | $S_t$ | Steuerzahlung | € | Schritt 6 |
 | $\mathrm{CF}_t$ | Equity-Cashflow gesamt | € | Schritt 7 |
 | $r$ | Diskontsatz | – | Einstellung |
+| $s_{\mathrm{trap}}$ | Cash-Trap-Schwelle des DSCR | – | global |
+| $s_{\mathrm{eod}}$ | Event-of-Default-Schwelle des DSCR | – | global |
+| $N_t$ | Erforderlicher Eigenkapitalnachschuss | € | Schritt 7 |
 
 ## 3.3 Einheiten und Umrechnungen
 
@@ -1051,6 +1054,59 @@ weiterzureichen.
 
 **Ausgang.** Vollständige Cashflow-Tabelle, Zeilen $t = 0 \dots N$.
 
+## 11.5 DSCR-Kovenanten: Ausschüttungssperre und Nachschusspflicht
+
+**Codestelle.** `engine/covenants.py`, `analysiere_kovenanten()`.
+
+Kreditverträge belegen den Schuldendienstdeckungsgrad mit zwei Schwellen.
+Beide wirken **nicht** auf die Cashflow-Rechnung zurück; sie werden auf
+der fertigen Zeitreihe ausgewertet.
+
+$$ s_{\mathrm{trap}} = \text{Cash-Trap-Schwelle (Vorbelegung } 1{,}10\text{)}, \qquad s_{\mathrm{eod}} = \text{Event-of-Default-Schwelle (Vorbelegung } 1{,}00\text{)} $$
+
+**Ereignisse.** Für alle Perioden mit $\mathrm{DS}_t > 0$:
+
+$$ \text{Cash Trap}_t \iff \mathrm{DSCR}_t < s_{\mathrm{trap}}, \qquad \text{Event of Default}_t \iff \mathrm{DSCR}_t < s_{\mathrm{eod}} $$
+
+**Nachschussbetrag.** Bei einem Event of Default wird der Verstoß
+üblicherweise durch eine Eigenkapitaleinlage geheilt (*Equity Cure*), und
+zwar in der Höhe, die den Deckungsgrad gerade wieder auf die Schwelle
+hebt. Zusätzlich ist eine reine Zahlungslücke stets zu decken – auch
+dann, wenn die Schwelle so niedrig gesetzt ist, dass sie formal nicht
+greift:
+
+$$ N_t = \max\left( \mathbf{1}_{[\mathrm{DSCR}_t\, <\, s_{\mathrm{eod}}]} \left(s_{\mathrm{eod}} \mathrm{DS}_t - \mathrm{CFADS}_t\right)^{+},\ \left(-\mathrm{CF}_t\right)^{+} \right) $$
+
+**Ausschüttung und Reserve.** Der Cash Trap sperrt die Ausschüttung; der
+freie Cashflow verbleibt dann als Reserve in der Gesellschaft:
+
+$$ \text{Ausschüttung } G_t^{\mathrm{aus}} = \left(\mathrm{CF}_t\right)^{+} \cdot \mathbf{1}_{[\mathrm{DSCR}_t\, \geq\, s_{\mathrm{trap}}]}, \qquad \text{Reservezugang } \left(\mathrm{CF}_t\right)^{+} \cdot \mathbf{1}_{[\mathrm{DSCR}_t\, <\, s_{\mathrm{trap}}]} $$
+
+**Deckungswasserfall.** Der Nachschuss wird in fester Reihenfolge aus drei
+Quellen gedeckt. Mit dem Reservebestand $Q_t$ und dem Bestand bereits
+ausgeschütteter, rückführbarer Mittel $A_t$:
+
+$$ n^{\mathrm{res}}_t = \min(N_t,\ Q_t), \qquad n^{\mathrm{aus}}_t = \min\left(N_t - n^{\mathrm{res}}_t,\ A_t\right), \qquad n^{\mathrm{ext}}_t = N_t - n^{\mathrm{res}}_t - n^{\mathrm{aus}}_t $$
+
+$$ Q_{t+1} = Q_t - n^{\mathrm{res}}_t + \left(\mathrm{CF}_t\right)^{+}\mathbf{1}_{[\mathrm{DSCR}_t\, <\, s_{\mathrm{trap}}]}, \qquad A_{t+1} = A_t - n^{\mathrm{aus}}_t + G_t^{\mathrm{aus}} $$
+
+Die ersten beiden Quellen sind Mittel, die das Projekt zuvor **selbst
+erwirtschaftet** hat: einbehaltener Cashflow und bereits an die
+Gesellschafter ausgekehrtes Kapital. Nur der Rest erfordert
+**zusätzliches externes Kapital**:
+
+$$ N^{\mathrm{ext}} = \sum_{t=1}^{N} n^{\mathrm{ext}}_t > 0 \quad \Longleftrightarrow \quad \text{externe Kapitalzuführung erforderlich} $$
+
+Diese Unterscheidung ist die eigentliche Aussage der Prüfung: Ein
+Nachschussbedarf, der aus eigener Kraft gedeckt werden kann, ist ein
+Liquiditäts-, kein Finanzierungsproblem.
+
+> **Annahme.** Der Deckungswasserfall unterstellt, dass ausgeschüttete
+> Mittel bei Bedarf in voller Höhe zurückgeführt werden können. Er
+> beziffert damit die Obergrenze der aus eigener Kraft möglichen
+> Deckung; ob die Gesellschafter tatsächlich zurückführen, ist eine
+> Frage des Gesellschaftsvertrags und nicht Gegenstand des Modells.
+
 # 12 Schritt 8 – Bewertungskennzahlen
 
 **Zweck.** Ableitung der entscheidungsrelevanten Barwert-, Rendite-,
@@ -1121,6 +1177,18 @@ $$ EK = -\mathrm{CF}_0, \qquad I = -\mathrm{CF}^{\mathrm{inv}}_0 $$
 $$ \mathrm{DSCR}^{\min} = \min_{t\,:\,\mathrm{DS}_t > 0} \mathrm{DSCR}_t $$
 
 $$ \text{Spezifisches Invest} = \frac{I}{P} \quad \left[\text{€/kWp}\right] $$
+
+**Equity Value.** Der Nettobarwert enthält den Eigenkapitaleinsatz des
+Jahres 0 als Abfluss. Rechnet man ihn wieder hinzu, verbleibt der Barwert
+der künftigen Eigenkapital-Cashflows – der Wert des Eigenkapitals zum
+Bewertungsstichtag:
+
+$$ V^{\mathrm{EK}}(r) = \operatorname{XNPV}(r) + EK = \sum_{t=1}^{N} \frac{\mathrm{CF}_t}{(1+r)^{\Delta_t/365}} $$
+
+**Enterprise Value.** Zuzüglich des zum Stichtag aufgenommenen
+Fremdkapitals ergibt sich der Gesamtunternehmenswert:
+
+$$ V^{\mathrm{GK}}(r) = V^{\mathrm{EK}}(r) + D, \qquad D = I - EK $$
 
 ## 12.5 Stromgestehungskosten (LCOE)
 
@@ -1832,6 +1900,8 @@ interpretiert, sollte diese Liste kennen.
 | A11 | Der Anteilsfaktor des Anlaufjahres reduziert nur den Zins, nicht die Tilgung | Bei Annuität wird im Anlaufjahr modellgemäß ein höherer Tilgungsanteil angesetzt |
 | A12 | Keine Liquiditätsreserve, kein Schuldendienstreservekonto | DSCR wird ausgewiesen, aber nicht als Nebenbedingung erzwungen |
 | A13 | Kein Restwert und keine Rückbaukosten am Ende der Betriebsdauer | Beides ist gegebenenfalls über CAPEX bzw. eine OPEX-Position abzubilden |
+| A13a | DSCR-Kovenanten wirken nicht auf die Cashflow-Rechnung zurück | Cash Trap und Equity Cure werden als Prüfung ausgewertet, nicht als Zahlungsstrom gebucht |
+| A13b | Ausgeschüttete Mittel gelten als in voller Höhe rückführbar | Der Deckungswasserfall beziffert die Obergrenze der Deckung aus eigener Kraft |
 
 ## 17.4 Steuern
 
@@ -1884,6 +1954,7 @@ unberührt – es rechnet mit der Kurve, die hinterlegt ist.
 | 9 | Finanzierung | `engine/financing.py` | `tests/test_financing_tax.py` |
 | 10 | Steuern | `engine/tax.py` | `tests/test_financing_tax.py`, `tests/test_markt_system.py` |
 | 11 | Cashflow | `engine/cashflow.py` | `tests/test_pipeline_kpis_io.py` |
+| 11.5 | DSCR-Kovenanten | `engine/covenants.py` | `tests/test_covenants.py` |
 | 12 | Kennzahlen, LCOE | `engine/kpis.py`, `engine/analytics.py` | `tests/test_pipeline_kpis_io.py`, `tests/test_analytics.py` |
 | 13 | Beispielrechnung | `docs/rechenmodell/beispiel.py` | `tests/test_dokumentation.py` |
 | 14 | Sensitivität, Monte Carlo | `engine/sensitivity.py`, `engine/analytics.py` | `tests/test_analytics.py` |

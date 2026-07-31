@@ -36,7 +36,11 @@ from engine.io_yaml import (
     save_project_yaml,
 )
 
-from .config import GLOBAL_ASSUMPTIONS_PATH, PROJECTS_DIR
+from .config import (
+    DOKUMENTATION_PDF_PATH,
+    GLOBAL_ASSUMPTIONS_PATH,
+    PROJECTS_DIR,
+)
 
 # ---------------------------------------------------------------------------
 # Globale Annahmen
@@ -54,6 +58,21 @@ def get_global_assumptions() -> GlobalAssumptions:
     von Platte zu lesen."""
     mtime = GLOBAL_ASSUMPTIONS_PATH.stat().st_mtime
     return _load_global_assumptions_cached(mtime)
+
+
+@st.cache_data(show_spinner=False)
+def _dokumentation_pdf_cached(mtime: float) -> bytes:
+    return DOKUMENTATION_PDF_PATH.read_bytes()
+
+
+def get_dokumentation_pdf() -> bytes | None:
+    """Die Rechenweg-Dokumentation als PDF-Bytes fuer den Hilfe-Knopf der
+    Kopfzeile - None, wenn die Datei nicht mitgeliefert wurde. Der
+    mtime im Cache-Schluessel sorgt dafuer, dass eine neu gebaute
+    Fassung ohne Neustart ausgeliefert wird."""
+    if not DOKUMENTATION_PDF_PATH.exists():
+        return None
+    return _dokumentation_pdf_cached(DOKUMENTATION_PDF_PATH.stat().st_mtime)
 
 
 def save_global_assumptions(assumptions: GlobalAssumptions) -> None:

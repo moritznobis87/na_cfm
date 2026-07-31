@@ -346,6 +346,23 @@ def render_assumptions() -> None:
             value=ga.tilgungsfreies_anlaufjahr,
             help=txt("oberflaeche.annahmen_tilgungsfreies_anlaufjahr_hilfe"),
         )
+        # DSCR-Kovenanten des Kreditvertrags: Sie veraendern die
+        # Cashflow-Rechnung nicht, sondern werden darauf ausgewertet
+        # (siehe engine/covenants.py).
+        col_trap, col_eod = st.columns(2)
+        dscr_cash_trap = col_trap.number_input(
+            txt("oberflaeche.annahmen_dscr_cash_trap_label"),
+            min_value=0.0, max_value=5.0, step=0.05,
+            value=float(ga.dscr_cash_trap),
+            help=txt("oberflaeche.annahmen_dscr_cash_trap_hilfe"),
+        )
+        dscr_event_of_default = col_eod.number_input(
+            txt("oberflaeche.annahmen_dscr_event_of_default_label"),
+            min_value=0.0, max_value=5.0, step=0.05,
+            value=float(ga.dscr_event_of_default),
+            help=txt("oberflaeche.annahmen_dscr_event_of_default_hilfe"),
+        )
+
         zm_oesterreich = txt("oberflaeche.annahmen_zinsmethode_oesterreich")
         zm_deutsch = txt("oberflaeche.annahmen_zinsmethode_deutsch")
         zinsmethode_label = st.radio(
@@ -493,6 +510,8 @@ def render_assumptions() -> None:
         ga.steuersatz_pct = steuersatz / 100
         ga.tilgungsart = TilgungsArt(tilgungsart)
         ga.tilgungsfreies_anlaufjahr = tilgungsfreies_anlaufjahr
+        ga.dscr_cash_trap = float(dscr_cash_trap)
+        ga.dscr_event_of_default = float(dscr_event_of_default)
         ga.zinsmethode = (
             ZinsMethode.OESTERREICH if zinsmethode_label == zm_oesterreich
             else ZinsMethode.DEUTSCH
