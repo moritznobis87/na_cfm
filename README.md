@@ -1,4 +1,4 @@
-# Nobis Analytics – PV-Projektbewertung
+# Valyze – PV-Projektbewertung
 
 Wirtschaftlichkeitsrechnung für PV-Projekte nach dem **österreichischen
 EAG-Marktprämienmodell** (gleitende Marktprämie) – ausgerichtet am
@@ -98,6 +98,28 @@ tests/                  46 Tests: Engine-Einheiten, Pipeline-E2E,
 ```
 
 Details und Begründungen der Designentscheidungen: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Rechenmodell-Dokumentation
+
+Der vollständige Rechenweg – jede Formel, in der Reihenfolge, in der die
+Engine sie rechnet, mit durchgerechnetem Beispielprojekt, Annahmenliste
+und Zuordnung jeder Formel zu Codestelle und Test – ist eigenständig
+dokumentiert:
+
+| Datei | Inhalt |
+| --- | --- |
+| [docs/rechenmodell/rechenmodell.md](docs/rechenmodell/rechenmodell.md) | Quelle (auf GitHub direkt lesbar, inkl. Formelsatz) |
+| [docs/rechenmodell/Rechenmodell.pdf](docs/rechenmodell/Rechenmodell.pdf) | Gesetztes PDF, 42 Seiten, mit Inhaltsverzeichnis |
+| `docs/rechenmodell/build_pdf.py` | Erzeugt das PDF aus der Markdown-Quelle |
+| `docs/rechenmodell/beispiel.py` | Erzeugt die Zahlen des Beispielkapitels aus der Engine |
+
+```bash
+make dokumentation   # Beispielzahlen + PDF neu erzeugen
+```
+
+Inhaltliche Änderungen gehören immer in die Markdown-Quelle, nie in das
+PDF. `tests/test_dokumentation.py` prüft, dass die im Beispielkapitel
+abgedruckten Zahlen weiterhin dem Rechenergebnis entsprechen.
 
 ## Datenhaltung
 

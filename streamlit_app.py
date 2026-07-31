@@ -1,5 +1,5 @@
 """
-Nobis Analytics PV-Projektbewertung - Einstiegspunkt.
+Valyze PV-Projektbewertung - Einstiegspunkt.
 
 Bewusst duenn gehalten: Seitenkonfiguration, Theme, Kopfzeile und
 Navigation. Die eigentlichen Seiten leben in app/views/, wieder-
@@ -14,7 +14,7 @@ import streamlit as st
 from app.branding import aktive_marke
 
 # Verdeckter Marken-Schalter: URL-Parameter ?marke=trianel zeigt die
-# vorherige Trianel-Gestaltung, sonst (Standard) Nobis Analytics -
+# vorherige Trianel-Gestaltung, sonst (Standard) Valyze -
 # siehe app/branding.py fuer Details. Muss vor set_page_config/
 # apply_theme ermittelt und angewendet werden.
 _MARKE = aktive_marke()

@@ -1,5 +1,37 @@
 # Changelog
 
+## v4.24 – Vollständige Dokumentation des Rechenweges (2026-07)
+
+- **Neue Rechenmodell-Dokumentation** unter `docs/rechenmodell/`: der
+  komplette Rechenweg mit allen mathematischen Formeln, in genau der
+  Reihenfolge, in der die Engine sie rechnet – Parameterauflösung,
+  Zeitachse, Energieertrag, Erlöse (Marktprämie, Inflationierung,
+  negative Stunden), Betriebskosten, Finanzierung, Steuern
+  (inkl. Verlustvortrag), Cashflow, Kennzahlen (XNPV/XIRR/LCOE),
+  Sensitivitäten und Monte Carlo sowie das vollständige Auktionsmodell
+  (Verteilungsfamilien, Fit, Wettbewerbs-Link, Differenzen-
+  extrapolation, Gebotsempfehlung).
+- **Ein durchgerechnetes Beispielprojekt** (Kapitel 13): Betriebsjahr 1
+  Schritt für Schritt von Hand nachgerechnet, Ergebniszeitreihe und
+  Kennzahlen – erzeugt aus der Engine, nicht abgeschrieben.
+- **Symbolverzeichnis, Annahmenkatalog (A1–A27) und Zuordnungstabelle**
+  Formel → Codestelle → Test; zusätzlich die Zuordnung jedes Symbols zum
+  Spaltennamen in Cashflow-Tabelle und Excel-Export.
+- **Einzige Quelle:** `docs/rechenmodell/rechenmodell.md` (auf GitHub
+  direkt lesbar). `docs/rechenmodell/build_pdf.py` setzt daraus das
+  42-seitige PDF `Rechenmodell.pdf` – mit Deckblatt, Inhaltsverzeichnis,
+  PDF-Lesezeichen und Kolumnentiteln, ausschließlich mit `reportlab`
+  und `matplotlib` (mathtext), ohne TeX- oder Pandoc-Installation.
+  Neuer Make-Zielbefehl: `make dokumentation`.
+- `matplotlib` und `reportlab` sind jetzt auch in `pyproject.toml`
+  Laufzeitabhängigkeiten (bisher nur in `requirements.txt`, obwohl
+  `app/report.py` sie importiert) – damit funktionieren PDF-Bericht und
+  Dokumentationsbau auch nach `make install`.
+- 3 neue Tests (`tests/test_dokumentation.py`): sie lesen die Zahlen des
+  Beispielkapitels aus der Markdown-Quelle und vergleichen sie mit einer
+  frisch gerechneten Bewertung – die Dokumentation kann der Rechnung
+  nicht mehr unbemerkt davonlaufen. Suite: 234.
+
 ## v4.23 – Wasserfalldiagramm: Hover zeigt Balkenhöhe statt Achsenwert (2026-07)
 
 - **Bugfix (vom Nutzer gemeldet):** Beim Überfahren der Balken im

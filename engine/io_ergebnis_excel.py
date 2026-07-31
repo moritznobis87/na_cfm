@@ -363,7 +363,7 @@ def pipeline_ergebnis_excel(
     projekte: list[tuple[PVProject, str]],
     ga: GlobalAssumptions,
     n_mc: int = 300,
-    marken_name: str = "Nobis Analytics",
+    marken_name: str = "Valyze",
 ) -> bytes:
     """Erstellt die Ergebnis-Arbeitsmappe: Blatt 'Übersicht' plus je
     Projekt ein Reiter mit allen Auswertungen als native Excel-

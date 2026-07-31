@@ -615,7 +615,7 @@ class _Kapitel(Paragraph):
 
 class _BerichtDoc(BaseDocTemplate):
     def __init__(self, puffer, projekt_name: str,
-                 marken_name: str = "Nobis Analytics", **kw):
+                 marken_name: str = "Valyze", **kw):
         super().__init__(puffer, pagesize=A4, leftMargin=_RAND_L,
                          rightMargin=_RAND_R, topMargin=_RAND_O,
                          bottomMargin=_RAND_U, **kw)
@@ -739,8 +739,8 @@ class ReportInputs:
     ziel_irr_pct: float = 0.08
     logo_path: Path | None = None
     #: Signatur in Fusszeile und PDF-Autor-Metadaten (verdeckter
-    #: Marken-Schalter, siehe app.branding) - Standard "Nobis Analytics".
-    marken_name: str = "Nobis Analytics"
+    #: Marken-Schalter, siehe app.branding) - Standard "Valyze".
+    marken_name: str = "Valyze"
     # Optionales EAG-Ausschreibungsmodell: dict mit "df" (Historie),
     # "prognose" (GebotsPrognose, Momentum-Modus), "formel_zeile" (Text
     # mit eingesetzten Stuetzstellen). None -> Kapitel entfaellt.

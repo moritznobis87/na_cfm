@@ -390,16 +390,16 @@ class TestFlaggenIcons:
         assert "New Project" in at.sidebar.radio[0].options
 
 
-class TestRebrandingNobisAnalytics:
-    """Regressionstest fuer den Rebrand von Trianel/TEA auf Nobis
-    Analytics: neues Logo/Favicon eingebunden, keine 'TEA'-Reste im
-    laufenden Programm oder in erzeugten Dokumenten."""
+class TestRebrandingValyze:
+    """Regressionstest fuer den Rebrand von Trianel/TEA auf Valyze:
+    neues Logo/Favicon eingebunden, keine 'TEA'-Reste im laufenden
+    Programm oder in erzeugten Dokumenten."""
 
     def test_config_zeigt_neue_marke(self):
         from app.config import APP_TITLE, FAVICON_PATH, LOGO_PATH
 
-        assert APP_TITLE == "Nobis Analytics"
-        assert LOGO_PATH.name == "nobis_logo.png"
+        assert APP_TITLE == "Valyze"
+        assert LOGO_PATH.name == "valyze_logo.png"
         assert LOGO_PATH.exists()
         assert FAVICON_PATH.exists()
 
@@ -433,7 +433,7 @@ class TestRebrandingNobisAnalytics:
         pdf = services.build_project_report("template-agri", 0.08)
         text = "\n".join(s.extract_text() for s in PdfReader(io.BytesIO(pdf)).pages)
         assert "TEA" not in text
-        assert "Nobis Analytics" in text
+        assert "Valyze" in text
 
     def test_excel_export_ohne_tea(self):
         import io
@@ -446,12 +446,12 @@ class TestRebrandingNobisAnalytics:
         wb = load_workbook(io.BytesIO(daten))
         titel = wb["Übersicht"]["A1"].value
         assert "TEA" not in titel
-        assert "Nobis Analytics" in titel
+        assert "Valyze" in titel
 
 
-class TestFarbschemaNobisAnalytics:
+class TestFarbschemaValyze:
     """Regressionstest fuer den Wechsel von Trianel-Rot/Tannengruen auf
-    die aus dem Nobis-Analytics-Logo abgeleitete Tuerkis/Navy-Palette:
+    die aus dem Valyze-Logo abgeleitete Tuerkis/Navy-Palette:
     keine alten Markenfarben mehr in Colors-Klasse, PDF-Report-Modul
     oder erzeugten Dokumenten."""
 
@@ -584,12 +584,12 @@ class TestVerdeckterMarkenSchalter:
     """End-to-End-Tests des verdeckten Marken-Schalters (app/branding.py):
     URL-Parameter ?marke=trianel zeigt die vorherige Trianel-Gestaltung
     (Original-Assets, wiederhergestellt aus einem frueheren Archiv),
-    ohne Parameter gilt Nobis Analytics."""
+    ohne Parameter gilt Valyze."""
 
     def test_registry_haelt_beide_marken_vollstaendig(self):
         from app.branding import MARKEN
 
-        assert set(MARKEN) == {"nobis", "trianel"}
+        assert set(MARKEN) == {"valyze", "trianel"}
         for code, marke in MARKEN.items():
             for schluessel in ("app_titel", "kopfzeile_titel", "logo",
                               "logo_breite", "favicon", "farben"):
@@ -608,7 +608,7 @@ class TestVerdeckterMarkenSchalter:
         assert logo.exists() and logo.stat().st_size > 10_000
         assert favicon.exists() and favicon.stat().st_size > 500
 
-    def test_ohne_parameter_zeigt_nobis_analytics(self):
+    def test_ohne_parameter_zeigt_valyze(self):
         from streamlit.testing.v1 import AppTest
 
         at = AppTest.from_file(
@@ -645,9 +645,9 @@ class TestVerdeckterMarkenSchalter:
             # Suite verunreinigen, nicht nur diese Datei.
             from app.branding import MARKEN
             from app.theme import wende_farben_an
-            wende_farben_an(MARKEN["nobis"]["farben"])
+            wende_farben_an(MARKEN["valyze"]["farben"])
 
-    def test_unbekannter_parameter_faellt_auf_nobis_zurueck(self):
+    def test_unbekannter_parameter_faellt_auf_valyze_zurueck(self):
         from streamlit.testing.v1 import AppTest
 
         at = AppTest.from_file(
@@ -666,7 +666,7 @@ class TestVerdeckterMarkenSchalter:
         services.build_project_report() ermittelt die Marke intern
         selbst ueber aktive_marke() - fuer den Test ausserhalb einer
         echten Streamlit-Session (dort faellt aktive_marke() mangels
-        Session-Kontext auf "nobis" zurueck) wird sie deshalb gemockt,
+        Session-Kontext auf "valyze" zurueck) wird sie deshalb gemockt,
         nicht nur die Farben vorbelegt."""
         import io
         from unittest.mock import patch
@@ -685,16 +685,16 @@ class TestVerdeckterMarkenSchalter:
             text = "\n".join(
                 s.extract_text() for s in PdfReader(io.BytesIO(pdf)).pages
             )
-            assert "Nobis Analytics" not in text
+            assert "Valyze" not in text
             assert "TEA PV-Projektbewertung" in text
         finally:
             # Colors/report sind bewusst einfacher, prozessweiter Zustand
             # (siehe Einschraenkung in app/branding.py) - ohne Reset
             # wuerde dieser Test alle NACHFOLGENDEN Tests in der
             # gesamten Suite verunreinigen, nicht nur diese Datei.
-            report.wende_farben_an(branding.MARKEN["nobis"]["farben"])
+            report.wende_farben_an(branding.MARKEN["valyze"]["farben"])
 
-    def test_nach_trianel_test_faellt_theme_auf_nobis_zurueck(self):
+    def test_nach_trianel_test_faellt_theme_auf_valyze_zurueck(self):
         """Reihenfolge-Unabhaengigkeit: stellt sicher, dass ein
         vorheriger Test dieser Klasse den globalen Colors-Zustand nicht
         fuer nachfolgende Tests (in DIESER oder anderen Testdateien)
@@ -729,4 +729,4 @@ class TestVerdeckterMarkenSchalter:
         wb = load_workbook(io.BytesIO(daten))
         titel = wb["Übersicht"]["A1"].value
         assert "TEA PV-Projektbewertung" in titel
-        assert "Nobis Analytics" not in titel
+        assert "Valyze" not in titel

@@ -2,11 +2,11 @@
 Visuelles Fundament der App: Design-Tokens, CSS und ein zentrales
 Plotly-Template.
 
-Designsprache: Nobis-Türkis als einziger Markenakzent (Interaktion,
+Designsprache: Valyze-Türkis als einziger Markenakzent (Interaktion,
 Auswahl, Kopfzeilen-Band) auf ruhigem Navy-Ink; durchgaengig Inter
 (fixiert ueber .streamlit/config.toml), KPI-Werte mit tabellarischen
-Ziffern. Türkis und Navy sind direkt aus dem Nobis-Analytics-Logo
-abgeleitet (siehe assets/nobis_logo.png).
+Ziffern. Türkis und Navy sind direkt aus dem Valyze-Logo
+abgeleitet (siehe assets/valyze_logo.png).
 
 Prinzip: Jede Farbe, jeder Abstand und jedes Diagramm bezieht seine
 Gestaltung aus DIESEM Modul. Views und Komponenten enthalten keine
@@ -25,14 +25,14 @@ import streamlit as st
 
 
 class Colors:
-    """Farbpalette: Nobis-Türkis als Markenakzent auf ruhigem Navy-Ink -
-    beide direkt aus dem Logo-Farbverlauf abgeleitet (assets/nobis_logo.png:
+    """Farbpalette: Valyze-Türkis als Markenakzent auf ruhigem Navy-Ink -
+    beide direkt aus dem Logo-Farbverlauf abgeleitet (assets/valyze_logo.png:
     Türkis #1F9CAC im Verlauf, Navy #14253B im Icon-Hintergrund). Die
     übrigen Töne sind rechnerisch (gleicher Farbton, angepasste
     Helligkeit/Sättigung) aus Navy hergeleitet, damit die ganze Palette
     aus einer Familie stammt statt einzelner geschätzter Werte."""
 
-    BRAND = "#167B88"          # Nobis-Türkis - Akzent, Auswahl, Primary-Buttons
+    BRAND = "#167B88"          # Valyze-Türkis - Akzent, Auswahl, Primary-Buttons
     INK = "#14304F"            # Tiefes Navy - Ueberschriften, Linien
     INK_SOFT = "#2B4F77"       # hellere Ink-Stufe (Sekundaerserien)
     MUTED = "#5C636A"          # Sekundaertext
