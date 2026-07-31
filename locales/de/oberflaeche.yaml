@@ -27,6 +27,8 @@ btn_excel_export: "Cashflow als Excel"
 btn_pdf_bericht: "PDF-Bericht erstellen"
 btn_pipeline_excel: "Excel-Ergebnisbericht erstellen"
 btn_pipeline_excel_download: "Pipeline-Ergebnisse herunterladen (.xlsx)"
+hilfe_dokumentation: "Rechenmodell-Dokumentation als PDF herunterladen"
+hilfe_dokumentation_dateiname: "Valyze_Rechenmodell.pdf"
 
 # --- Badges / Status -----------------------------------------------------------
 badge_agri: "Agri-PV"

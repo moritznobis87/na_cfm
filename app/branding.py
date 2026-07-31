@@ -91,3 +91,59 @@ def aktive_marke_code() -> str:
 
 def aktive_marke() -> dict:
     return MARKEN[aktive_marke_code()]
+
+
+#: Alles heller als dieser Wert gilt beim Beschnitt als Hintergrund. Eine
+#: reine Weiss-Pruefung scheitert an der Kompressionsstreuung des PNG.
+_HINTERGRUND_SCHWELLE = 240
+
+
+@st.cache_data(show_spinner=False)
+def _logo_beschnitten(pfad: str, mtime: float) -> bytes | None:
+    """Logo ohne weissen Rand, als PNG-Bytes.
+
+    Die gelieferte Marke steht auf einer grossen weissen Flaeche - der
+    Schriftzug belegt nur etwa ein Viertel der Bildhoehe. Unbeschnitten
+    bestimmt der Weissraum die Hoehe der Kopfzeile, waehrend die Marke
+    selbst winzig bleibt und der Claim unleserlich wird. Der Beschnitt
+    geschieht bewusst zur Laufzeit: Die Datei in ``assets/`` bleibt das
+    unveraenderte Markenoriginal.
+
+    (Der PDF-Build fuehrt denselben Beschnitt eigenstaendig aus, siehe
+    ``docs/rechenmodell/build_pdf.py`` - er darf nicht von der
+    UI-Schicht abhaengen.)
+
+    None, wenn der Beschnitt nicht moeglich ist; die Aufrufer nutzen
+    dann die Originaldatei.
+    """
+    try:
+        import io
+
+        import numpy as np
+        from PIL import Image
+    except ImportError:                       # pragma: no cover
+        return None
+
+    bild = Image.open(pfad).convert("RGB")
+    maske = np.asarray(bild).min(axis=2) < _HINTERGRUND_SCHWELLE
+    if not maske.any():
+        return None
+    zeilen, spalten = np.where(maske)
+    rand = 4
+    kasten = (
+        max(int(spalten.min()) - rand, 0),
+        max(int(zeilen.min()) - rand, 0),
+        min(int(spalten.max()) + 1 + rand, bild.width),
+        min(int(zeilen.max()) + 1 + rand, bild.height),
+    )
+    puffer = io.BytesIO()
+    bild.crop(kasten).save(puffer, format="PNG")
+    return puffer.getvalue()
+
+
+def logo_bild(marke: dict) -> bytes | str:
+    """Darstellbares Logo der Marke - beschnitten, wenn moeglich, sonst
+    der Dateipfad als Rueckfall."""
+    pfad = marke["logo"]
+    beschnitten = _logo_beschnitten(str(pfad), pfad.stat().st_mtime)
+    return beschnitten if beschnitten is not None else str(pfad)

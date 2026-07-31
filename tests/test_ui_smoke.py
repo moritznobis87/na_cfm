@@ -278,3 +278,42 @@ class TestKPIUndChartBugfixes:
 
         fig = charts.portfolio_bubble_chart(pd.DataFrame(), selected_id=None)
         assert len(fig.data) == 0
+
+
+class TestDokumentationsKnopf:
+    """Hilfe-Knopf in der Kopfzeile: laedt die Rechenweg-Dokumentation
+    als PDF herunter (siehe streamlit_app.py)."""
+
+    def test_kopfzeile_bietet_dokumentation_zum_download(self, at: AppTest):
+        knoepfe = [
+            k for k in at.get("download_button")
+            if k.proto.id.startswith("dokumentation_download")
+            or k.proto.help.startswith("Rechenmodell-Dokumentation")
+        ]
+        assert len(knoepfe) == 1, "Hilfe-Knopf fehlt in der Kopfzeile"
+        assert knoepfe[0].proto.help  # uebersetzter Tooltip vorhanden
+
+    def test_ausgelieferte_datei_ist_ein_pdf(self):
+        from app import services
+
+        daten = services.get_dokumentation_pdf()
+        assert daten is not None, "docs/rechenmodell/Rechenmodell.pdf fehlt"
+        assert daten[:5] == b"%PDF-", "keine gueltige PDF-Datei"
+
+    def test_logo_wird_ohne_weissen_rand_gesetzt(self):
+        """Die Markendatei steht auf viel Weissraum; unbeschnitten
+        bestimmt dieser die Hoehe der Kopfzeile (siehe app.branding)."""
+        import io
+
+        from PIL import Image
+
+        from app.branding import MARKEN, logo_bild
+
+        marke = MARKEN["valyze"]
+        original = Image.open(marke["logo"])
+        beschnitten = logo_bild(marke)
+        assert isinstance(beschnitten, bytes)
+        neu = Image.open(io.BytesIO(beschnitten))
+        # Der Schriftzug belegt nur einen Bruchteil der Originalhoehe.
+        assert neu.height < original.height * 0.5
+        assert neu.width < original.width

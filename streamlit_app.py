@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.branding import aktive_marke
+from app.branding import aktive_marke, logo_bild
 
 # Verdeckter Marken-Schalter: URL-Parameter ?marke=trianel zeigt die
 # vorherige Trianel-Gestaltung, sonst (Standard) Valyze -
@@ -73,11 +73,13 @@ from texte import SESSION_KEY, SPRACHEN, sprachauswahl_label, txt  # noqa: E402
 # verschwindet von selbst - ein sicheres Erkennungsmerkmal dafuer, dass
 # schlicht die garantierte Mindesthoehe fehlte.
 with st.container(key="app_header"):
-    col_logo, col_title, col_sprache = st.columns(
-        [2.2, 7, 1.4], vertical_alignment="center"
+    col_logo, col_title, col_sprache, col_hilfe = st.columns(
+        [2.2, 6.4, 1.4, 0.6], vertical_alignment="center"
     )
     if _MARKE["logo"].exists():
-        col_logo.image(str(_MARKE["logo"]), width=_MARKE["logo_breite"])
+        # logo_bild() entfernt den weissen Rand der Markendatei, damit die
+        # Kopfzeile nicht vom Weissraum bestimmt wird (siehe app.branding).
+        col_logo.image(logo_bild(_MARKE), width=_MARKE["logo_breite"])
     # Untertitel folgt der in den globalen Annahmen gewaehlten
     # Marktsystematik (EAG Oesterreich / EEG Deutschland).
     _untertitel_key = (
@@ -123,6 +125,24 @@ with st.container(key="app_header"):
             ) and code != _aktuell:
                 st.session_state[SESSION_KEY] = code
                 st.rerun()
+
+    # Hilfe-Knopf ganz rechts: laedt die Rechenweg-Dokumentation als PDF
+    # herunter. Bewusst ein Download-Knopf statt eines Links - die Datei
+    # liegt im Repository und soll ohne Netzzugriff verfuegbar sein.
+    # Fehlt sie (z.B. Deployment ohne gebautes PDF), entfaellt der Knopf
+    # stillschweigend, statt einen toten Knopf zu zeigen.
+    _doku_pdf = services.get_dokumentation_pdf()
+    if _doku_pdf is not None:
+        col_hilfe.download_button(
+            "",
+            data=_doku_pdf,
+            file_name=txt("oberflaeche.hilfe_dokumentation_dateiname"),
+            mime="application/pdf",
+            icon=":material/help:",
+            help=txt("oberflaeche.hilfe_dokumentation"),
+            key="dokumentation_download",
+            width="stretch",
+        )
 
 st.markdown('<div class="app-header-rule"></div>', unsafe_allow_html=True)
 

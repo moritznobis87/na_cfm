@@ -37,10 +37,15 @@ QUELLE = HIER / "rechenmodell.md"
 TEX_ZIEL = HIER / "Rechenmodell.tex"
 PDF_ZIEL = HIER / "Rechenmodell.pdf"
 DIAGRAMM = HIER / "rechenweg.png"
-#: Bild- und Wortmarke fuer das Deckblatt (horizontale Fassung). Liegt
-#: die Datei nicht vor, setzt _logo_block() den Schriftzug typografisch;
-#: das Deckblatt traegt dann bewusst KEIN Bild statt eines falschen.
-LOGO = HIER.parent.parent / "assets" / "valyze_wortmarke.png"
+#: Bild- und Wortmarke (horizontale Fassung). Liegt die Datei nicht vor,
+#: setzt _logo_block() den Schriftzug typografisch - das Deckblatt traegt
+#: dann bewusst KEIN Bild statt eines falschen.
+LOGO = HIER.parent.parent / "assets" / "valyze_logo.png"
+#: Beschnittene Fassung der Marke fuer den Satz (siehe _marke_beschneiden).
+MARKE = HIER / "valyze_marke.png"
+#: Breite der Marke auf dem Deckblatt. Ueber die Breite statt die Hoehe
+#: gesetzt, damit der Schriftzug samt Claim lesbar bleibt.
+MARKE_BREITE_MM = 76
 
 DOKUMENTTITEL = (
     "Dokumentation Cash-Flow-Model - "
@@ -189,28 +194,70 @@ def erzeuge_diagramm(ziel: Path = DIAGRAMM) -> Path:
     return ziel
 
 
-def _logo_block() -> str:
+def _marke_beschneiden(quelle: Path = LOGO, ziel: Path = MARKE) -> Path | None:
+    """Schneidet den weissen Rand der Markendatei ab.
+
+    Die gelieferte Marke steht auf einer grossen weissen Flaeche: Der
+    Schriftzug belegt nur etwa ein Viertel der Bildhoehe. Wird die Datei
+    unbeschnitten ueber ihre Hoehe skaliert, bleibt vom Logo ein
+    Bruchteil uebrig und der Claim ist nicht mehr lesbar. Deshalb wird
+    der Rand vor dem Satz entfernt; das Original in ``assets/`` bleibt
+    unveraendert.
+
+    Als Hintergrund gilt alles, dessen dunkelster Kanal ueber
+    ``SCHWELLE`` liegt - eine reine Weiss-Pruefung wuerde an der
+    Kompressionsstreuung des PNG scheitern.
+    """
+    if not quelle.exists():
+        return None
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError:                     # Pillow/numpy nicht vorhanden
+        return quelle
+
+    SCHWELLE = 240
+    bild = Image.open(quelle).convert("RGB")
+    maske = np.asarray(bild).min(axis=2) < SCHWELLE
+    if not maske.any():
+        return quelle
+    zeilen, spalten = np.where(maske)
+    rand = 4                                # kleiner Sicherheitsrand
+    kasten = (
+        max(int(spalten.min()) - rand, 0),
+        max(int(zeilen.min()) - rand, 0),
+        min(int(spalten.max()) + 1 + rand, bild.width),
+        min(int(zeilen.max()) + 1 + rand, bild.height),
+    )
+    bild.crop(kasten).save(ziel)
+    return ziel
+
+
+def _logo_block(marke: Path | None) -> str:
     """Markenzeile des Deckblatts.
 
-    Liegt die Bild- und Wortmarke unter ``assets/valyze_wortmarke.png``,
-    wird sie gesetzt; andernfalls tritt der typografische Schriftzug an
-    ihre Stelle, damit der Build auch ohne Bilddatei durchläuft. Der Pfad
-    ist relativ zum Dokumentverzeichnis, damit die erzeugte
-    ``Rechenmodell.tex`` ausserhalb dieses Rechners uebersetzbar bleibt.
+    Liegt die Marke vor, wird sie ueber ihre Breite gesetzt (die Hoehe
+    ergibt sich aus dem Seitenverhaeltnis); andernfalls tritt der
+    typografische Schriftzug an ihre Stelle, damit der Build auch ohne
+    Bilddatei durchlaeuft. Der Pfad bleibt relativ zum
+    Dokumentverzeichnis, damit die erzeugte ``Rechenmodell.tex`` auch
+    auf einem anderen Rechner uebersetzbar ist.
     """
-    relativ = LOGO.relative_to(HIER.parent.parent)
-    pfad = "/".join([".."] * 2 + list(relativ.parts))
-    return (
-        rf"\IfFileExists{{{pfad}}}"
-        rf"{{\includegraphics[height=16mm]{{{pfad}}}}}"
-        r"{\sffamily\bfseries\fontsize{16}{20}\selectfont\color{Brand}VALYZE}"
-        r"\par"
-    )
+    if marke is None:
+        return (
+            r"{\sffamily\bfseries\fontsize{16}{20}\selectfont"
+            r"\color{Brand}VALYZE}\par"
+        )
+    try:
+        pfad = marke.relative_to(HIER).as_posix()
+    except ValueError:
+        pfad = "/".join([".."] * 2 + list(marke.relative_to(HIER.parent.parent).parts))
+    return rf"\includegraphics[width={MARKE_BREITE_MM}mm]{{{pfad}}}\par"
 
 
-def _preamble(tagline: str) -> str:
+def _preamble(tagline: str, marke: Path | None = None) -> str:
     stand = date.today().strftime("%d.%m.%Y")
-    logo_block = _logo_block()
+    logo_block = _logo_block(marke)
     # Der Inhalt wird von Pandoc direkt in die erzeugte TeX-Datei kopiert.
     return rf'''
 % --- Dokumentdesign -------------------------------------------------------
@@ -424,6 +471,7 @@ def baue_pdf(
     latexmk = _werkzeug("latexmk")
     _werkzeug("xelatex")
     erzeuge_diagramm(DIAGRAMM)
+    marke = _marke_beschneiden()
 
     markdown, tagline = _markdown_fuer_pandoc(quelle)
     with tempfile.TemporaryDirectory(prefix="rechenmodell-build-") as tmp:
@@ -431,7 +479,7 @@ def baue_pdf(
         md_tmp = tmpdir / "rechenmodell_build.md"
         preamble = tmpdir / "rechenmodell_preamble.tex"
         md_tmp.write_text(markdown, encoding="utf-8")
-        preamble.write_text(_preamble(tagline), encoding="utf-8")
+        preamble.write_text(_preamble(tagline, marke), encoding="utf-8")
 
         tex_ziel.parent.mkdir(parents=True, exist_ok=True)
         _run(

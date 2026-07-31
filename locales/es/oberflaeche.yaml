@@ -27,6 +27,8 @@ btn_excel_export: "Flujo de caja en Excel"
 btn_pdf_bericht: "Crear informe PDF"
 btn_pipeline_excel: "Crear informe de resultados en Excel"
 btn_pipeline_excel_download: "Descargar resultados de la cartera (.xlsx)"
+hilfe_dokumentation: "Descargar la documentación del modelo de cálculo (PDF)"
+hilfe_dokumentation_dateiname: "Valyze_Modelo_de_calculo.pdf"
 
 # --- Insignias / estado -------------------------------------------------------------
 badge_agri: "Agri-PV"

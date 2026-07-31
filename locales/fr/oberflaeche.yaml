@@ -27,6 +27,8 @@ btn_excel_export: "Flux de trésorerie en Excel"
 btn_pdf_bericht: "Créer le rapport PDF"
 btn_pipeline_excel: "Créer le rapport de résultats Excel"
 btn_pipeline_excel_download: "Télécharger les résultats du portefeuille (.xlsx)"
+hilfe_dokumentation: "Télécharger la documentation du modèle de calcul (PDF)"
+hilfe_dokumentation_dateiname: "Valyze_Modele_de_calcul.pdf"
 
 # --- Badges / statut -------------------------------------------------------------
 badge_agri: "Agri-PV"
