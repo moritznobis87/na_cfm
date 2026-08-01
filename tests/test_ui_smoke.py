@@ -352,3 +352,49 @@ class TestKovenantenStatus:
         assert analyse.hat_event_of_default
         assert analyse.nachschuss_gesamt_eur > 0
         assert analyse.braucht_externes_kapital
+
+
+class TestInvestkostenUmschalter:
+    """Jedes Investkosten-Feld hat einen eigenen Umschalter zwischen
+    spezifischer Eingabe (€/kWp, Vorbelegung) und Gesamtbetrag (€) -
+    siehe app/components/project_form.py."""
+
+    def _formular(self, at: AppTest) -> AppTest:
+        at.sidebar.radio[0].set_value("neu")
+        at.run()
+        assert not at.exception
+        return at
+
+    def test_jedes_feld_hat_einen_eigenen_schalter(self, at: AppTest):
+        at = self._formular(at)
+        schalter = [t for t in at.get("toggle")
+                    if t.key and t.key.endswith("_absolut")]
+        # Neun CAPEX-Positionen (EPC ... Poenale + Puffer).
+        assert len(schalter) == 9
+        assert all(s.value is False for s in schalter), "Vorbelegung ist €/kWp"
+
+    def test_umschalten_rechnet_den_eingegebenen_wert_um(self, at: AppTest):
+        at = self._formular(at)
+        leistung = [n for n in at.get("number_input")
+                    if n.key == "neues_projekt_leistung_live"][0].value
+        epc_vorher = [n for n in at.get("number_input")
+                      if n.key == "neues_projekt_epc"][0].value
+
+        [t for t in at.get("toggle") if t.key == "neues_projekt_epc_absolut"][0] \
+            .set_value(True)
+        at.run()
+        assert not at.exception
+
+        epc_nachher = [n for n in at.get("number_input")
+                       if n.key == "neues_projekt_epc"][0]
+        assert epc_nachher.value == pytest.approx(epc_vorher * leistung, rel=1e-6)
+        assert "(€)" in epc_nachher.label
+
+    def test_schalter_wirken_unabhaengig_voneinander(self, at: AppTest):
+        at = self._formular(at)
+        [t for t in at.get("toggle") if t.key == "neues_projekt_epc_absolut"][0] \
+            .set_value(True)
+        at.run()
+        andere = [n for n in at.get("number_input")
+                  if n.key == "neues_projekt_netz"][0]
+        assert "(€/kWp)" in andere.label

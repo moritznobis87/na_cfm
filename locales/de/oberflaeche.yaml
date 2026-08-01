@@ -142,6 +142,8 @@ sidebar_annahmen_uebernehmen: "Hochgeladene Excel-Datei übernehmen"
 # --- Projektformular ---------------------------------------------------------
 formular_ibn_monat_hilfe: "ℹ️ Bestimmt das erste (anteilige) Betriebsjahr, die Cashflow-Daten und ab welchem Kalenderjahr die Marktpreiskurve des gewählten Szenarios (siehe unten) verwendet wird."
 formular_investkosten_titel: "**Investkosten**"
+formular_capex_toggle_absolut: "Gesamtbetrag (€)"
+formular_capex_toggle_hilfe: "Aus: Eingabe je installierter Leistung (€/kWp). Ein: Eingabe als Gesamtbetrag in Euro. Der eingegebene Wert wird beim Umschalten umgerechnet."
 formular_direktvermarktung_hilfe: "Kosten für Bilanzkreis, Prognose, Marktzugang - üblicherweise ca. 1 €/MWh (0,1 ct/kWh)."
 formular_konventionell_abschlag_hinweis: "Konventionell: automatischer Abschlag von 25 % wird angewendet → effektiv {wert} ct/kWh"
 formular_marktpreisszenario_label: "Marktpreisszenario"

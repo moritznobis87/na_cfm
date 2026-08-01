@@ -144,6 +144,8 @@ sidebar_annahmen_uebernehmen: "Aplicar archivo Excel cargado"
 # --- Lote 2: supuestos, subasta, panel del proyecto, meses ---
 formular_ibn_monat_hilfe: "ℹ️ Determina el primer año de explotación (parcial), los datos de flujo de caja y a partir de qué año natural se utiliza la curva de precio de mercado del escenario seleccionado (véase más abajo)."
 formular_investkosten_titel: "**Costes de inversión**"
+formular_capex_toggle_absolut: "Importe total (€)"
+formular_capex_toggle_hilfe: "Desactivado: entrada por potencia instalada (€/kWp). Activado: entrada como importe total en euros. El valor introducido se convierte al cambiar."
 formular_direktvermarktung_hilfe: "Costes de responsable de balance, previsión, acceso al mercado - normalmente alrededor de 1 €/MWh (0,1 ct/kWh)."
 formular_konventionell_abschlag_hinweis: "Convencional: se aplica automáticamente un descuento del 25 % → efectivo {wert} ct/kWh"
 formular_marktpreisszenario_label: "Escenario de precio de mercado"

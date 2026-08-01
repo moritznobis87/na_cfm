@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.27 – Investkosten je Feld umschaltbar (2026-08)
+
+- **Jedes Investkosten-Feld hat einen eigenen Umschalter** zwischen
+  spezifischer Eingabe (€/kWp, Vorbelegung) und Gesamtbetrag (€) – der
+  gemeinsame Radio-Umschalter für alle Felder entfällt. Beim Umschalten
+  wird der bereits eingegebene Wert umgerechnet, statt die Vorbelegung
+  neu zu setzen.
+- Der Investkosten-Block liegt dafür jetzt außerhalb von `st.form`:
+  Widgets innerhalb eines Formulars lösen erst beim Absenden einen Rerun
+  aus, die Umschalter müssen aber sofort wirken (dieselbe Begründung wie
+  bei den übrigen Einheiten-Umschaltern, siehe Modulkopf).
+- Sidebar-Hinweise zum Sichern/Wiederherstellen nutzerorientiert
+  formuliert – ohne Verweise auf Tabellenblätter, YAML-Dateien und
+  Repository-Commits.
+- 3 neue UI-Tests (ein Schalter je Feld, Umrechnung beim Umschalten,
+  Unabhängigkeit der Felder); Suite: 252.
+
 ## v4.26 – Projektbericht: Kovenanten statt Modellherleitung (2026-08)
 
 - **Event-of-Default-DSCR jetzt 1,05x vorbelegt** (zuvor 1,00x) – in
