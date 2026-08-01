@@ -8,7 +8,7 @@ mit zwei Schwellen belegt:
 - **Cash Trap** (Lock-up, ueblich 1,10x): Unterschreitet der DSCR diese
   Schwelle, darf keine Ausschuettung mehr erfolgen; der freie Cashflow
   bleibt als Reserve in der Gesellschaft.
-- **Event of Default** (ueblich 1,00x): Unterschreitet der DSCR diese
+- **Event of Default** (ueblich 1,05x): Unterschreitet der DSCR diese
   Schwelle, liegt eine Vertragsverletzung vor. Sie wird ueblicherweise
   durch eine Eigenkapitaleinlage geheilt (Equity Cure) - in Hoehe des
   Betrags, der den DSCR gerade wieder auf die Schwelle hebt.

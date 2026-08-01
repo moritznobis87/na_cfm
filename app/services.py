@@ -435,22 +435,7 @@ def _auktions_paket_fuer_bericht() -> dict | None:
         prognose = get_gebots_prognose(
             "prognose", float(letzte.ausschreibung.preisobergrenze_ct),
         )
-        wett = sorted((f.ausschreibung for f in modell.fits
-                       if not f.ausschreibung.unterzeichnet),
-                      key=lambda a: a.datum)
-        def _de(v: float) -> str:
-            return f"{v:.2f}".replace(".", ",")
-
-        maxes = " → ".join(_de(a.zuschlag_max_ct) for a in wett)
-        from texte import txt
-
-        formel = txt(
-            "bericht.auktion_formel_zeile", maxes=maxes,
-            grenzzuschlag=_de(prognose.grenzzuschlag_zentral_ct),
-            mittel=_de(prognose.mittel_prognose_ct),
-        )
-        return {"df": df, "prognose": prognose, "modell": modell,
-                "formel_zeile": formel}
+        return {"df": df, "prognose": prognose, "modell": modell}
     except Exception:
         return None
 

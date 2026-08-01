@@ -29,7 +29,6 @@ abschnitt_tornado: "Analyse tornado"
 abschnitt_eag_varianten: "Variantes de la valeur d'attribution EAG"
 abschnitt_auktion_historie: "Historique des appels d'offres"
 abschnitt_auktion_fitting: "Ajustement des fonctions de distribution aux tours historiques"
-abschnitt_auktion_modell: "Description du modèle"
 abschnitt_auktion_prognose: "Prévision du prochain tour"
 abschnitt_opex_positionen: "Postes de coûts d'exploitation"
 abschnitt_capex: "Dépenses d'investissement"
@@ -113,55 +112,6 @@ abb_15_caption: >-
   couleur du gris = tour le plus ancien au rouge = tour le plus récent ;
   tours sous-souscrits en pointillés).
 
-modell_verteilungsfamilie: >-
-  Famille de distribution. Les offres b sont modélisées comme une
-  distribution inverse-gamma reflétée au prix plafond P<sub>max</sub> :
-  b = P<sub>max</sub> − Y avec Y ~ InvGamma(α, β). La densité chute très
-  rapidement vers zéro à l'approche du plafond et décroît lentement vers
-  la gauche – exactement l'image attendue pour un système pay-as-bid
-  sous concurrence :
-
-modell_kalibrierung: >-
-  Calibration par tour. Les paramètres (α, β) de chaque tour découlent
-  des deux conditions (moyenne pondérée m̄, minimum b<sub>min</sub>,
-  valeur d'attribution marginale p<sub>m</sub>, ε = 0,02) ; le taux de
-  sursouscription des tours sursouscrits est latent :
-
-modell_punktprognose_intro: >-
-  Prévision ponctuelle du prochain tour. La valeur d'attribution
-  marginale et la valeur d'attribution moyenne sont chacune
-  extrapolées séparément par extrapolation récursive des différences
-  sur les tours concurrentiels. Pour une série temporelle x<sub>t</sub>,
-  les différences sont formées de manière récursive ; l'ordre le plus
-  élevé utilisé, m, reste constant, et tous les ordres inférieurs sont
-  prolongés récursivement – amortis par λ<sub>k</sub> ∈ [0, 1] (par
-  défaut : m = 2, λ = 1) :
-
-modell_punktprognose_ergebnis: >-
-  La méthode tient ainsi compte à la fois de la tendance et de son
-  évolution : si la baisse s'atténue, elle anticipe un nouvel
-  aplatissement plutôt qu'une extrapolation constante. Le minimum suit
-  une marche aléatoire (aucune dynamique stable dans l'historique) ;
-  le résultat est ensuite projeté sur minimum ≤ moyenne ≤ valeur
-  d'attribution marginale < P<sub>max</sub>, et la distribution du
-  prochain tour est construite à partir des prévisions ponctuelles (la
-  condition de moyenne fortement pondérée, le minimum servant d'ancrage
-  souple pour la queue de distribution). {formel_zeile}
-
-modell_unsicherheit_intro: >-
-  Incertitude et décision d'offre. L'incertitude de la valeur
-  d'attribution marginale est modélisée comme une distribution normale
-  tronquée au plafond autour de la prévision ponctuelle (σ issu de la
-  dispersion des variations historiques d'un tour à l'autre). En tant
-  que preneur de prix, la probabilité d'attribution de sa propre offre
-  et l'offre recommandée pour une probabilité cible z sont données
-  par :
-
-modell_zuschlagsdichte_intro: >-
-  La distribution des valeurs d'attribution représentée est la densité
-  des offres tronquée et renormalisée à la valeur d'attribution
-  marginale :
-
 abb_16_caption: >-
   Fig. 16 : distribution prévisionnelle du prochain tour – densité des
   valeurs d'attribution (tronquée à la valeur d'attribution marginale
@@ -185,7 +135,6 @@ tab_3_caption: >-
 
 
 # --- Lot 2 : page de couverture, chapitres 1-7, annexes A/B ---
-auktion_formel_zeile: "Points d'appui, valeur d'attribution marginale : {maxes} ct ⇒ prévision {grenzzuschlag} ct ; prévision moyenne {mittel} ct."
 chart_umsatzerloese_label: "Recettes"
 chart_betriebskosten_label: "Coûts
 d'exploitation"
@@ -331,3 +280,44 @@ steuermodus_pauschal: "Taux forfaitaire sur l'EBT"
 steuermodus_afa_at: "Impôt des sociétés avec amortissement (Autriche)"
 steuermodus_gewerbesteuer_de: "Taxe professionnelle (Allemagne)"
 gewerbesteuer_hebesatz_kurz: "Coefficient communal"
+
+# --- DSCR-Kovenanten -----------------------------------------------------
+abschnitt_kovenanten: "Covenants DSCR : blocage des distributions et apport en fonds propres"
+dscr_linie_cash_trap: "Cash trap {wert}x"
+dscr_linie_event_of_default: "Event of default {wert}x"
+kovenanten_spalte_schwelle: "Seuil"
+kovenanten_spalte_wert: "Valeur"
+kovenanten_spalte_jahre: "Années d'exploitation concernées"
+kovenanten_zeile_cash_trap: "Cash trap (blocage des distributions)"
+kovenanten_zeile_event_of_default: "Event of default (apport en fonds propres)"
+kovenanten_zeile_min_dscr: "DSCR minimal sur la durée du prêt"
+kovenanten_spalte_deckung: "Couverture de l'apport"
+kovenanten_spalte_betrag: "Montant"
+kovenanten_deckung_reserve: "Par la réserve retenue (cash trap)"
+kovenanten_deckung_ausschuettung: "Par le capital déjà distribué"
+kovenanten_deckung_extern: "Par des capitaux externes supplémentaires"
+kovenanten_deckung_summe: "Total de l'apport en fonds propres"
+kovenanten_text_ok: "Le DSCR minimal s'élève à {dscr} et se situe donc au-dessus des deux seuils ({trap} cash trap, {eod} event of default). Ni blocage des distributions ni apport en fonds propres n'est attendu sur la durée du prêt."
+kovenanten_text_cash_trap: "Sur {anzahl} année(s) d'exploitation, le DSCR passe sous le seuil de cash trap de {trap} : {jahre}. Aucune distribution n'est permise ces années-là ; le cash-flow libre reste en réserve dans la société et demeure disponible pour le service de la dette."
+kovenanten_text_event_of_default: "Sur {anzahl} année(s) d'exploitation, le DSCR passe sous le seuil d'event of default de {eod} : {jahre}. Il s'agit d'une violation contractuelle, généralement corrigée par un apport en fonds propres. Le besoin cumulé s'élève à {betrag}."
+kovenanten_text_intern: "L'apport est intégralement couvert par les fonds générés auparavant par le projet ({intern}) : la réserve retenue et le capital déjà distribué suffisent. Aucun capital externe supplémentaire n'est nécessaire pendant la durée."
+kovenanten_text_extern: "{extern} de l'apport ne sont pas couverts par les fonds propres (disponible en interne : {intern}). La société a besoin de capitaux externes supplémentaires de ce montant pendant la durée. Les remèdes habituels sont un taux d'endettement plus faible, une durée de prêt plus longue ou une première année sans amortissement."
+
+auktion_modell_verweis: >-
+  La structure mathématique du modèle d'enchères – familles de distribution,
+  calibrage par tour, lien de concurrence, extrapolation par différences et
+  distribution prévisionnelle – est décrite intégralement dans la
+  documentation du modèle de calcul (chapitre 15). Ce rapport présente les
+  données, l'ajustement et le résultat de la prévision.
+
+summary_nachschuss_extern: >-
+  <b>Risque de financement :</b> sur {anzahl} année(s) d'exploitation, le
+  DSCR passe sous le seuil d'event of default de {eod}. L'apport cumulé en
+  fonds propres s'élève à {betrag}, dont {extern} non couverts par les fonds
+  générés auparavant – des capitaux externes de ce montant sont nécessaires
+  (détails au chapitre 4).
+summary_nachschuss_intern: >-
+  <b>Remarque :</b> sur {anzahl} année(s) d'exploitation, le DSCR passe sous
+  le seuil d'event of default de {eod}. L'apport cumulé de {betrag} est
+  intégralement couvert par les fonds générés auparavant ; aucun capital
+  externe n'est nécessaire (détails au chapitre 4).

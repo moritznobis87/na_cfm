@@ -1,5 +1,29 @@
 # Changelog
 
+## v4.26 – Projektbericht: Kovenanten statt Modellherleitung (2026-08)
+
+- **Event-of-Default-DSCR jetzt 1,05x vorbelegt** (zuvor 1,00x) – in
+  Modell, Excel-Roundtrip, Hilfetexten und Dokumentation.
+- **Projektbericht (PDF) bildet die Kovenantenprüfung ab**, analog zu den
+  Statusmeldungen der Anwendung:
+  - DSCR-Diagramm zeigt beide Schwellen als Linien; Balken folgen der
+    Ampel (rot unter Event of Default, gedämpft unter Cash Trap).
+  - Neuer Abschnitt in Kapitel 4 mit Schwellentabelle, betroffenen
+    Betriebsjahren, Aufteilung der Nachschussdeckung (Reserve /
+    bereits ausgeschüttet / extern) und Klartext-Bewertung.
+  - Management Summary nennt einen Nachschussbedarf und weist aus, ob
+    externes Kapital erforderlich ist.
+- **Mathematische Modellherleitung des Auktionsmodells aus dem
+  Projektbericht entfernt** (Abschnitt 8.3 samt Formelsatz). Der Bericht
+  zeigt Datenlage, Anpassung und Prognose; die Herleitung steht
+  ausschließlich in der Rechenmodell-Dokumentation (Kapitel 15), auf die
+  das Kapitel jetzt verweist. Tote Formel-Hilfsfunktion und acht nicht
+  mehr benötigte Textbausteine entfernt.
+- **Begriffe harmonisiert** – Portfolio-Kacheln: „Investitionsvolumen
+  gesamt" → **Capex Gesamt**, „Eigenkapital gesamt" → **Equity Gesamt**,
+  „Ø EK-Rendite" → **Ø Equity IRR**; Projektkarten entsprechend.
+- Alle Änderungen in allen vier Sprachen gepflegt; Suite: 249 grün.
+
 ## v4.25 – Bewertungskacheln und DSCR-Kovenanten (2026-07)
 
 - **KPI-Kacheln neu belegt** (Projekt-Dashboard und PDF-Bericht):

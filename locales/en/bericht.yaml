@@ -29,7 +29,6 @@ abschnitt_tornado: "Tornado analysis"
 abschnitt_eag_varianten: "EAG award value variants"
 abschnitt_auktion_historie: "History of the auctions"
 abschnitt_auktion_fitting: "Fitting distribution functions to the historical rounds"
-abschnitt_auktion_modell: "Model description"
 abschnitt_auktion_prognose: "Forecast for the next round"
 abschnitt_opex_positionen: "Operating cost items"
 abschnitt_capex: "Capital expenditure"
@@ -103,49 +102,6 @@ abb_15_caption: >-
   grey = oldest to red = most recent round; undersubscribed rounds
   dashed).
 
-modell_verteilungsfamilie: >-
-  Distribution family. Bids b are modelled as an inverse-gamma
-  distribution mirrored at the price cap P<sub>max</sub>: b =
-  P<sub>max</sub> − Y with Y ~ InvGamma(α, β). The density drops very
-  steeply to zero towards the cap and tapers off slowly to the left –
-  exactly the picture expected for pay-as-bid under competition:
-
-modell_kalibrierung: >-
-  Calibration per round. The parameters (α, β) for each round follow
-  from two conditions (volume-weighted average m̄, minimum
-  b<sub>min</sub>, marginal award value p<sub>m</sub>, ε = 0.02); the
-  oversubscription ratio of oversubscribed rounds is latent:
-
-modell_punktprognose_intro: >-
-  Point forecast for the next round. The marginal award value and the
-  average award value are each extrapolated separately using recursive
-  difference extrapolation over the competitive rounds. For a time
-  series x<sub>t</sub>, differences are formed recursively; the highest
-  order used, m, is held constant, and all lower orders are extended
-  recursively – damped by λ<sub>k</sub> ∈ [0, 1] (default: m = 2, λ = 1):
-
-modell_punktprognose_ergebnis: >-
-  The method thus accounts for both the trend and its change: if the
-  decline is flattening, it expects further flattening rather than a
-  constant extrapolation. The minimum follows a random walk (no stable
-  dynamics in the history); the result is then projected onto minimum ≤
-  average ≤ marginal award value < P<sub>max</sub>, and the distribution
-  for the next round is built from the point forecasts (the average
-  condition weighted heavily, the minimum serving as a soft tail
-  anchor). {formel_zeile}
-
-modell_unsicherheit_intro: >-
-  Uncertainty and bid decision. The uncertainty of the marginal award
-  value is modelled as a normal distribution truncated at the cap
-  around the point forecast (σ from the spread of historical
-  round-to-round changes). As a price taker, the award probability of
-  one's own bid and the recommended bid for a target probability z are
-  given by:
-
-modell_zuschlagsdichte_intro: >-
-  The distribution of award values shown is the bid density truncated
-  and renormalised at the marginal award value:
-
 abb_16_caption: >-
   Fig. 16: Forecast distribution for the next round – density of award
   values (truncated at the marginal award value {grenzzuschlag_ct}),
@@ -166,7 +122,6 @@ tab_3_caption: >-
 
 
 # --- Batch 2: cover page, chapters 1-7, annex A/B ---
-auktion_formel_zeile: "Support points, marginal award value: {maxes} ct ⇒ forecast {grenzzuschlag} ct; avg. forecast {mittel} ct."
 chart_umsatzerloese_label: "Revenue"
 chart_betriebskosten_label: "Operating
 costs"
@@ -312,3 +267,44 @@ steuermodus_pauschal: "Flat rate on EBT"
 steuermodus_afa_at: "Corporate tax with depreciation (Austria)"
 steuermodus_gewerbesteuer_de: "Trade tax (Germany)"
 gewerbesteuer_hebesatz_kurz: "Municipal multiplier"
+
+# --- DSCR-Kovenanten -----------------------------------------------------
+abschnitt_kovenanten: "DSCR covenants: distribution lock-up and equity cure"
+dscr_linie_cash_trap: "Cash trap {wert}x"
+dscr_linie_event_of_default: "Event of default {wert}x"
+kovenanten_spalte_schwelle: "Threshold"
+kovenanten_spalte_wert: "Value"
+kovenanten_spalte_jahre: "Affected operating years"
+kovenanten_zeile_cash_trap: "Cash trap (distribution lock-up)"
+kovenanten_zeile_event_of_default: "Event of default (equity cure)"
+kovenanten_zeile_min_dscr: "Minimum DSCR over the loan term"
+kovenanten_spalte_deckung: "Funding of the equity cure"
+kovenanten_spalte_betrag: "Amount"
+kovenanten_deckung_reserve: "From retained reserve (cash trap)"
+kovenanten_deckung_ausschuettung: "From previously distributed capital"
+kovenanten_deckung_extern: "From additional external capital"
+kovenanten_deckung_summe: "Total equity cure"
+kovenanten_text_ok: "The minimum debt service coverage ratio is {dscr} and therefore above both covenant thresholds ({trap} cash trap, {eod} event of default). Neither a distribution lock-up nor an equity cure is expected over the loan term."
+kovenanten_text_cash_trap: "In {anzahl} operating year(s) DSCR falls below the cash trap threshold of {trap}: {jahre}. No distribution may be made in those years; free cash flow is retained in the company as a reserve and remains available for later debt service."
+kovenanten_text_event_of_default: "In {anzahl} operating year(s) DSCR falls below the event of default threshold of {eod}: {jahre}. This constitutes a covenant breach, usually remedied by an equity contribution. The cumulative equity cure amounts to {betrag}."
+kovenanten_text_intern: "The equity cure is fully covered by funds the project generated earlier ({intern}): retained reserve and previously distributed capital suffice. No additional external capital is required during the term."
+kovenanten_text_extern: "{extern} of the equity cure is not covered by own funds (internally available: {intern}). The company requires additional external capital of that amount during the term. Effective remedies are usually a lower debt ratio, a longer loan term or a grace period in year one."
+
+auktion_modell_verweis: >-
+  The mathematical structure of the auction model – distribution families,
+  per-round calibration, competition link, difference extrapolation and
+  forecast distribution – is documented in full in the calculation model
+  documentation (chapter 15). This report shows data, fit and forecast
+  result.
+
+summary_nachschuss_extern: >-
+  <b>Financing risk:</b> in {anzahl} operating year(s) the debt service
+  coverage ratio falls below the event of default threshold of {eod}. The
+  cumulative equity cure amounts to {betrag}, of which {extern} is not
+  covered by funds generated earlier – additional external capital of that
+  amount is required (details in chapter 4).
+summary_nachschuss_intern: >-
+  <b>Note:</b> in {anzahl} operating year(s) the debt service coverage ratio
+  falls below the event of default threshold of {eod}. The cumulative equity
+  cure of {betrag} is fully covered by funds generated earlier; no external
+  capital is required (details in chapter 4).
