@@ -400,6 +400,60 @@ class TestInvestkostenUmschalter:
         assert "(€/kWp)" in andere.label
 
 
+class TestFreieKostenpositionen:
+    """Zusaetzliche Invest- und Betriebskostenpositionen mit frei
+    gewaehlter Bezeichnung - je eine dynamische Tabelle im Projektformular
+    (app/components/project_form.py)."""
+
+    def _formular(self, at: AppTest) -> AppTest:
+        at.sidebar.radio[0].set_value("neu")
+        at.run()
+        assert not at.exception
+        return at
+
+    def test_beide_tabellen_sind_vorhanden(self, at: AppTest):
+        at = self._formular(at)
+        # Der dynamische Editor erscheint im AppTest-Baum als "dataframe".
+        keys = {e.key for e in at.get("dataframe") if e.key}
+        assert "neues_projekt_capex_zusatz" in keys
+        assert "neues_projekt_opex_zusatz" in keys
+
+    def test_tabellen_starten_leer(self, at: AppTest):
+        at = self._formular(at)
+        for key in ("neues_projekt_capex_zusatz", "neues_projekt_opex_zusatz"):
+            editor = [e for e in at.get("dataframe") if e.key == key][0]
+            assert editor.value.empty
+            assert list(editor.value.columns) == ["Position", "Wert"]
+
+    def test_zeilen_ohne_bezeichnung_werden_verworfen(self):
+        """Eine leere Zeile im Editor (Nutzer klickt '+', tippt nichts)
+        darf kein namenloses Modellobjekt erzeugen."""
+        import pandas as pd
+
+        from app.components.project_form import _bereinige_positionen
+
+        roh = pd.DataFrame(
+            [{"Position": "Zaun", "Wert": 25_000.0},
+             {"Position": "", "Wert": 100.0},
+             {"Position": "  ", "Wert": None},
+             {"Position": "Kran", "Wert": None}]
+        )
+        assert _bereinige_positionen(roh) == [
+            {"Position": "Zaun", "Wert": 25_000.0},
+            {"Position": "Kran", "Wert": 0.0},
+        ]
+
+    def test_reservierter_name_wird_am_formular_gemeldet(self):
+        """Jede Betriebskostenposition wird zu einer Spalte der
+        Cashflow-Zeitreihe - ein reservierter Name muss als Hinweis am
+        Formular erscheinen, nicht als Streamlit-Fehlerseite."""
+        from app.components.project_form import _namensfehler
+
+        assert _namensfehler([{"Position": "Zaun", "Wert": 1.0}]) is None
+        meldung = _namensfehler([{"Position": "opex_gesamt_eur", "Wert": 1.0}])
+        assert meldung and "opex_gesamt_eur" in meldung
+
+
 class TestKopfzeileUndKacheln:
     """Zwei gemeldete Darstellungsfehler in schmalen Fenstern (siehe
     app/theme.py): der Kopfzeilentitel verschwand hinter Streamlits

@@ -18,12 +18,14 @@ Struktur der Arbeitsmappe:
 from __future__ import annotations
 
 import io
+import json
 
 import pandas as pd
 
 from .models import (
     AnlagenTyp,
     CapexBreakdown,
+    CapexPosition,
     DirektvermarktungsModus,
     GlobalAssumptions,
     MarktpreisSzenario,
@@ -320,7 +322,31 @@ PROJEKT_SPALTEN = [
     "capex_widmung_eur", "capex_genehmigung_eur",
     "capex_sonstige_extern_eur", "capex_agm_eur", "capex_m_and_a_eur",
     "capex_poenale_puffer_eur",
+    # Frei benannte Zusatzpositionen als JSON-Text in EINER Spalte: Ihre
+    # Anzahl ist projektabhaengig, feste Spalten scheiden damit aus. Der
+    # Import kommt ohne diese Spalten aus (aeltere Exporte).
+    "capex_zusatzpositionen_json", "zusatz_opex_json",
 ]
+
+
+def _json_liste(wert) -> list[dict]:
+    """Liest eine als JSON-Text gespeicherte Positionsliste.
+
+    Fehlt die Spalte (aeltere Exportdatei) oder ist sie leer, ergibt sich
+    eine leere Liste - der Import bleibt damit abwaertskompatibel.
+    """
+    if wert is None or (isinstance(wert, float) and pd.isna(wert)):
+        return []
+    text = str(wert).strip()
+    if not text or text.lower() == "nan":
+        return []
+    try:
+        eintraege = json.loads(text)
+    except json.JSONDecodeError as fehler:
+        raise ValueError(
+            f"Zusatzpositionen sind kein gueltiges JSON: {text[:60]}"
+        ) from fehler
+    return list(eintraege)
 
 
 def projects_to_excel(projects: list[PVProject]) -> bytes:
@@ -354,6 +380,13 @@ def projects_to_excel(projects: list[PVProject]) -> bytes:
             "capex_agm_eur": p.capex.agm_eur,
             "capex_m_and_a_eur": p.capex.m_and_a_eur,
             "capex_poenale_puffer_eur": p.capex.poenale_puffer_eur,
+            "capex_zusatzpositionen_json": json.dumps(
+                [pos.model_dump() for pos in p.capex.zusatzpositionen],
+                ensure_ascii=False,
+            ),
+            "zusatz_opex_json": json.dumps(
+                [pos.model_dump() for pos in p.zusatz_opex], ensure_ascii=False
+            ),
         }
         for p in projects
     ]
@@ -442,7 +475,15 @@ def excel_to_projects(file_bytes: bytes) -> list[PVProject]:
                     agm_eur=float(r["capex_agm_eur"]),
                     m_and_a_eur=float(r["capex_m_and_a_eur"]),
                     poenale_puffer_eur=float(r["capex_poenale_puffer_eur"]),
+                    zusatzpositionen=[
+                        CapexPosition(**eintrag)
+                        for eintrag in _json_liste(r.get("capex_zusatzpositionen_json"))
+                    ],
                 ),
+                zusatz_opex=[
+                    OpexItem(**eintrag)
+                    for eintrag in _json_liste(r.get("zusatz_opex_json"))
+                ],
             )
         )
     return projects

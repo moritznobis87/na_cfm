@@ -157,10 +157,88 @@ class TaxModus(str, Enum):
 # ---------------------------------------------------------------------------
 
 
+#: Spaltennamen der Cashflow-Zeitreihe, die eine frei benannte
+#: Kostenposition NICHT tragen darf - sie wuerde die gleichnamige
+#: Ergebnisspalte ueberschreiben (siehe engine/cashflow.py).
+RESERVIERTE_POSITIONSNAMEN = frozenset(
+    {
+        "jahr", "datum", "produktion_kwh", "marktwert_real_ct_kwh",
+        "marktwert_nominal_ct_kwh", "verguetungssatz_ct_kwh", "erloes_eur",
+        "erloes_markt_eur", "erloes_praemie_eur", "opex_gesamt_eur",
+        "gemeindeabgabe_eur", "direktvermarktungskosten_eur", "zinsen_eur",
+        "tilgung_eur", "afa_eur",
+        "steuerliches_ergebnis_vor_verlustvortrag_eur",
+        "verlustvortrag_genutzt_eur", "verlustvortrag_bestand_eur",
+        "steuerliches_ergebnis_eur", "steuer_eur", "cf_operativ_eur",
+        "cf_invest_eur", "cf_finanzierung_eur", "cf_gesamt_eur",
+        "cf_kumuliert_eur", "dscr",
+    }
+)
+
+
+def pruefe_positionsname(name: str) -> str:
+    """Validiert den frei vergebenen Namen einer Kostenposition.
+
+    Jede Betriebskostenposition wird zu einer eigenen Spalte der
+    Cashflow-Zeitreihe (siehe engine/opex.py). Ein Name, der auf eine
+    Ergebnisspalte faellt, wuerde diese ueberschreiben - deshalb wird er
+    hier abgelehnt statt still Schaden anzurichten.
+    """
+    bereinigt = name.strip()
+    if not bereinigt:
+        raise ValueError("Der Name einer Kostenposition darf nicht leer sein.")
+    if bereinigt.lower() in RESERVIERTE_POSITIONSNAMEN:
+        raise ValueError(
+            f"'{bereinigt}' ist ein reservierter Spaltenname der "
+            "Cashflow-Zeitreihe und als Positionsname nicht zulaessig."
+        )
+    return bereinigt
+
+
+class OpexItem(BaseModel):
+    """Eine Betriebskostenposition (EUR je kWp und Jahr).
+
+    Der Name wird zum Spaltennamen der Cashflow-Zeitreihe und damit zum
+    Legendeneintrag im gestapelten Kostendiagramm - er wird deshalb gegen
+    die reservierten Ergebnisspalten geprueft."""
+
+    name: str
+    basiswert_eur_kwp: float = 0.0
+    start_betriebsjahr: int = 1
+    index_pct_pa: float = 0.0
+    indexierung_ab_jahr: int = 1
+
+    @model_validator(mode="after")
+    def _name_pruefen(self) -> OpexItem:
+        self.name = pruefe_positionsname(self.name)
+        return self
+
+
+class CapexPosition(BaseModel):
+    """Frei benannte, zusaetzliche Investitionskostenposition.
+
+    CAPEX geht ausschliesslich als SUMME in die Rechnung ein (siehe
+    pipeline.resolve_assumptions); zusaetzliche Positionen veraendern
+    daher keine Formel, sondern nur die Aufgliederung in Maske, Diagramm
+    und Bericht.
+    """
+
+    name: str
+    betrag_eur: float = 0.0
+
+    @model_validator(mode="after")
+    def _name_pruefen(self) -> CapexPosition:
+        self.name = pruefe_positionsname(self.name)
+        return self
+
+
 class CapexBreakdown(BaseModel):
     """Investitionskosten nach Kategorie. Alle Werte in EUR (Gesamtbetrag,
     nicht spezifisch), damit die Eingabe unmittelbar einem Angebot/einer
-    Kostenschaetzung entspricht."""
+    Kostenschaetzung entspricht.
+
+    Neben den festen Kategorien koennen beliebig viele frei benannte
+    Positionen ergaenzt werden (siehe CapexPosition)."""
 
     epc_eur: float = 0.0
     netzanschluss_eur: float = 0.0
@@ -171,10 +249,12 @@ class CapexBreakdown(BaseModel):
     agm_eur: float = 0.0
     m_and_a_eur: float = 0.0
     poenale_puffer_eur: float = 0.0
+    #: Frei benannte Zusatzpositionen des Projekts.
+    zusatzpositionen: list[CapexPosition] = Field(default_factory=list)
 
     @property
     def summe_eur(self) -> float:
-        return (
+        return sum(p.betrag_eur for p in self.zusatzpositionen) + (
             self.epc_eur
             + self.netzanschluss_eur
             + self.trasse_eur
@@ -228,6 +308,12 @@ class PVProject(BaseModel):
     # Investkosten
     capex: CapexBreakdown = Field(default_factory=CapexBreakdown)
 
+    #: Zusaetzliche, projektspezifische Betriebskosten - werden in
+    #: pipeline.resolve_assumptions an die globale Standardliste
+    #: angehaengt und danach genauso behandelt (eigene Spalte, eigener
+    #: Legendeneintrag, eigene Indexierung).
+    zusatz_opex: list[OpexItem] = Field(default_factory=list)
+
     # Wahl des Marktpreisszenarios (siehe GlobalAssumptions.marktpreisszenarien).
     # "Aurora 10/25" ist das Standardszenario.
     marktpreisszenario: str = "Aurora 10/25"
@@ -252,14 +338,6 @@ class PVProject(BaseModel):
 # ---------------------------------------------------------------------------
 # Globale Annahmen (Layer 1) - selten geaendert, fuer alle Projekte gueltig
 # ---------------------------------------------------------------------------
-
-
-class OpexItem(BaseModel):
-    name: str
-    basiswert_eur_kwp: float = 0.0
-    start_betriebsjahr: int = 1
-    index_pct_pa: float = 0.0
-    indexierung_ab_jahr: int = 1
 
 
 class MarktpreisSzenario(BaseModel):
