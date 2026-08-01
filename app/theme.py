@@ -131,7 +131,12 @@ def _baue_css() -> str:
     sich durch den verdeckten Marken-Schalter zur Laufzeit aendern)."""
     return f"""
     <style>
-        .block-container {{ padding-top: 1.4rem; max-width: 1280px; }}
+        /* Streamlits eigene Kopfleiste (header[data-testid="stHeader"]) ist
+           60px hoch, deckend weiss und liegt ueber dem Inhalt. Der obere
+           Rand muss sie freihalten, sonst verschwindet das erste Element -
+           sichtbar wurde das an der Kopfzeile, sobald ihr Untertitel auf
+           zwei Zeilen umbrach und der Titel nach oben rutschte. */
+        .block-container {{ padding-top: 4rem; max-width: 1280px; }}
 
         /* --- Kopfzeile: garantierte Mindesthoehe -------------------------------
            Ohne das hier faellt die Zeilenhoehe bei kurzem, unumbrochenem
@@ -191,6 +196,23 @@ def _baue_css() -> str:
             grid-auto-columns: 1fr;
             gap: 12px;
             margin: 0.35rem 0 0.9rem 0;
+        }}
+        /* Fuenf Kacheln nebeneinander lassen in einem schmalen Fenster nur
+           rund 60px Textbreite je Kachel - dort reicht auch die kleinste
+           zulaessige Schrift nicht mehr, und lange Betraege wurden mit
+           Auslassungspunkten abgeschnitten. Ab diesen Breiten bricht die
+           Zeile deshalb um, statt die Kacheln weiter zu stauchen. */
+        @media (max-width: 1150px) {{
+            .kpi-row {{
+                grid-auto-flow: row;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }}
+        }}
+        @media (max-width: 780px) {{
+            .kpi-row {{
+                grid-auto-flow: row;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }}
         }}
         .kpi-card {{
             position: relative;
