@@ -398,3 +398,30 @@ class TestInvestkostenUmschalter:
         andere = [n for n in at.get("number_input")
                   if n.key == "neues_projekt_netz"][0]
         assert "(€/kWp)" in andere.label
+
+
+class TestKopfzeileUndKacheln:
+    """Zwei gemeldete Darstellungsfehler in schmalen Fenstern (siehe
+    app/theme.py): der Kopfzeilentitel verschwand hinter Streamlits
+    eigener Kopfleiste, und die KPI-Werte wurden abgeschnitten."""
+
+    def _css(self) -> str:
+        import pathlib
+
+        return pathlib.Path("app/theme.py").read_text(encoding="utf-8")
+
+    def test_inhalt_beginnt_unter_streamlits_kopfleiste(self):
+        """Streamlits header[data-testid='stHeader'] ist 60px hoch und
+        deckend - der obere Rand muss ihn freihalten."""
+        import re
+
+        treffer = re.search(r"\.block-container \{\{ padding-top: ([\d.]+)rem",
+                            self._css())
+        assert treffer, "padding-top der .block-container nicht gefunden"
+        assert float(treffer.group(1)) * 16 >= 60
+
+    def test_kpi_zeile_bricht_in_schmalen_fenstern_um(self):
+        css = self._css()
+        assert "@media (max-width: 1150px)" in css
+        assert "grid-template-columns: repeat(3, minmax(0, 1fr))" in css
+        assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in css
