@@ -127,7 +127,7 @@ overview_keine_projekte: "Aucun projet pour l'instant. Commencez par « Nouveau 
 
 # --- Barre latérale : traduction complète -------------------------------------------
 sidebar_projekte_titel: "Sauvegarder / restaurer les projets"
-sidebar_projekte_beschreibung: "Téléchargez sous forme de fichier Excel et validez-le dans le dépôt pour sauvegarder durablement les projets - ou importez à nouveau des projets précédemment sauvegardés (une ligne par projet)."
+sidebar_projekte_beschreibung: "Sauvegarde de tous les projets dans un fichier Excel : à télécharger, à transmettre et à réimporter plus tard."
 sidebar_herunterladen_titel: "**Télécharger**"
 sidebar_alle_projekte_excel: "Tous les projets en Excel"
 sidebar_keine_projekte: "Aucun projet disponible."
@@ -135,7 +135,7 @@ sidebar_hochladen_titel: "**Importer**"
 sidebar_projekte_upload_label: "Fichier Excel (.xlsx, une ligne par projet)"
 sidebar_hochgeladene_projekte_speichern: "Enregistrer les projets importés"
 sidebar_annahmen_titel: "Sauvegarder / restaurer les hypothèses globales"
-sidebar_annahmen_beschreibung: "Sous forme de fichier Excel (3 feuilles : courbes de prix, coûts d'exploitation, paramètres) - plus pratique à modifier que le fichier YAML directement."
+sidebar_annahmen_beschreibung: "Modifiez les courbes de prix, les coûts d'exploitation et les paramètres dans Excel, puis réimportez-les – pratique pour changer de nombreuses valeurs en une fois."
 sidebar_annahmen_excel: "Hypothèses globales en Excel"
 sidebar_annahmen_upload_label: "Fichier Excel (.xlsx)"
 sidebar_annahmen_uebernehmen: "Appliquer le fichier Excel importé"
