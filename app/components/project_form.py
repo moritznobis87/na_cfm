@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pandas as pd
 import streamlit as st
 
 from app import services
@@ -29,11 +30,89 @@ from app.config import monate
 from engine import (
     AnlagenTyp,
     CapexBreakdown,
+    CapexPosition,
     DirektvermarktungsModus,
+    OpexItem,
     PachtModus,
     PVProject,
 )
+from engine.models import pruefe_positionsname
 from texte import txt
+
+
+def _namensfehler(eintraege: list[dict]) -> str | None:
+    """Erste unbrauchbare Bezeichnung als Klartextmeldung, sonst None.
+
+    Ohne diese Vorpruefung wuerde eine reservierte Bezeichnung erst beim
+    Aufbau des Modells als Validierungsfehler auffliegen - der Nutzer
+    saehe eine Streamlit-Fehlerseite statt eines Hinweises am Formular.
+    """
+    for eintrag in eintraege:
+        try:
+            pruefe_positionsname(eintrag["Position"])
+        except ValueError:
+            return txt(
+                "oberflaeche.formular_zusatz_name_unzulaessig",
+                name=eintrag["Position"],
+            )
+    return None
+
+
+def _bereinige_positionen(tabelle: pd.DataFrame) -> list[dict]:
+    """Editorzeilen in eine Liste verwertbarer Positionen ueberfuehren.
+
+    Der dynamische Editor liefert auch die Zeile, die der Nutzer angelegt,
+    aber noch nicht ausgefuellt hat. Zeilen ohne Bezeichnung entfallen
+    deshalb; ein fehlender Betrag zaehlt als 0.
+    """
+    eintraege: list[dict] = []
+    for _, zeile in tabelle.iterrows():
+        name = str(zeile["Position"] or "").strip()
+        if not name:
+            continue
+        wert = zeile["Wert"]
+        eintraege.append(
+            {"Position": name, "Wert": float(wert) if pd.notna(wert) else 0.0}
+        )
+    return eintraege
+
+
+def _positionstabelle(
+    form_key: str,
+    schluessel: str,
+    titel: str,
+    hilfe: str,
+    spalte_wert: str,
+    vorhandene: list[dict],
+) -> list[dict]:
+    """Frei benannte Kostenpositionen als dynamische Tabelle.
+
+    Bewusst ein `st.data_editor` mit `num_rows="dynamic"` statt einzelner
+    Eingabefelder mit "+"-Knopf: Der Editor bleibt ueber alle Durchlaeufe
+    EIN Widget mit stabilem Key und fuehrt die Zeilen als Daten. Widgets,
+    die zwischen zwei Durchlaeufen erscheinen und verschwinden, sind in
+    Streamlit ein bekanntes Risikomuster (siehe Modulkopf) - genau das
+    entstuende beim zeilenweisen Aufbauen. Dieselbe Technik nutzen bereits
+    die Globalen Annahmen fuer Preiskurven und Standardbetriebskosten.
+
+    Rueckgabe: bereinigte Liste - Zeilen ohne Bezeichnung entfallen,
+    Betraege ohne Wert zaehlen als 0 (siehe _bereinige_positionen).
+    """
+    st.markdown(titel)
+    st.caption(hilfe)
+    tabelle = st.data_editor(
+        pd.DataFrame(vorhandene or [], columns=["Position", "Wert"]),
+        width="stretch", hide_index=True, num_rows="dynamic",
+        key=f"{form_key}_{schluessel}",
+        column_config={
+            "Position": st.column_config.TextColumn(
+                txt("oberflaeche.formular_zusatz_spalte_position"),
+            ),
+            "Wert": st.column_config.NumberColumn(spalte_wert, min_value=0.0),
+        },
+    )
+    return _bereinige_positionen(tabelle)
+
 
 #: EPC-Vorbelegung je Anlagentyp in €/kWp (Erfahrungswerte 2025/26).
 EPC_DEFAULT_EUR_KWP = {"Agri-PV": 520.0, "Konventionell": 430.0}
@@ -205,6 +284,29 @@ def render_project_form(
         c9, txt("oberflaeche.formular_capex_poenale"),
         capex_defaults.poenale_puffer_eur if existing else 35000.0,
         "poenale",
+    )
+
+    zusatz_capex = _positionstabelle(
+        form_key=form_key,
+        schluessel="capex_zusatz",
+        titel=txt("oberflaeche.formular_capex_zusatz_titel"),
+        hilfe=txt("oberflaeche.formular_capex_zusatz_hilfe"),
+        spalte_wert=txt("oberflaeche.formular_capex_zusatz_betrag"),
+        vorhandene=[
+            {"Position": z.name, "Wert": z.betrag_eur}
+            for z in (existing.capex.zusatzpositionen if existing else [])
+        ],
+    )
+    zusatz_opex = _positionstabelle(
+        form_key=form_key,
+        schluessel="opex_zusatz",
+        titel=txt("oberflaeche.formular_opex_zusatz_titel"),
+        hilfe=txt("oberflaeche.formular_opex_zusatz_hilfe"),
+        spalte_wert=txt("oberflaeche.formular_opex_zusatz_betrag"),
+        vorhandene=[
+            {"Position": z.name, "Wert": z.basiswert_eur_kwp}
+            for z in (existing.zusatz_opex if existing else [])
+        ],
     )
 
     st.markdown("**Pacht**")
@@ -417,6 +519,10 @@ def render_project_form(
     if not name.strip():
         st.error(txt("oberflaeche.projekt_name_fehlt"))
         return None
+    positionsfehler = _namensfehler(zusatz_capex + zusatz_opex)
+    if positionsfehler:
+        st.error(positionsfehler)
+        return None
 
     project_id = existing.id if existing else services.make_project_id(name)
     return PVProject(
@@ -440,6 +546,14 @@ def render_project_form(
         gemeindeabgabe_eur_mwh=gemeindeabgabe_mwh,
         direktvermarktungskosten_eur_mwh=direktvermarktungskosten_mwh,
         marktpreisszenario=marktpreisszenario,
+        zusatz_opex=[
+            OpexItem(
+                name=eintrag["Position"],
+                basiswert_eur_kwp=eintrag["Wert"],
+                index_pct_pa=global_assumptions.kosten_inflation_pct_pa,
+            )
+            for eintrag in zusatz_opex
+        ],
         capex=CapexBreakdown(
             epc_eur=epc,
             netzanschluss_eur=netzanschluss,
@@ -450,5 +564,9 @@ def render_project_form(
             agm_eur=agm,
             m_and_a_eur=m_and_a,
             poenale_puffer_eur=poenale,
+            zusatzpositionen=[
+                CapexPosition(name=eintrag["Position"], betrag_eur=eintrag["Wert"])
+                for eintrag in zusatz_capex
+            ],
         ),
     )
