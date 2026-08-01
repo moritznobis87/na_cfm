@@ -126,7 +126,7 @@ overview_keine_projekte: "Noch keine Projekte angelegt. Starten Sie mit „Neues
 
 # --- Sidebar: vollständige Übersetzung -------------------------------------------
 sidebar_projekte_titel: "Projekte sichern / wiederherstellen"
-sidebar_projekte_beschreibung: "Sicherungskopie aller Projekte als Excel-Datei – zum Herunterladen, Weitergeben und späteren Wiedereinspielen."
+sidebar_projekte_beschreibung: "Sicherungskopie aller Projekte als Excel-Datei."
 sidebar_herunterladen_titel: "**Herunterladen**"
 sidebar_alle_projekte_excel: "Alle Projekte als Excel"
 sidebar_keine_projekte: "Keine Projekte vorhanden."
@@ -134,7 +134,7 @@ sidebar_hochladen_titel: "**Hochladen**"
 sidebar_projekte_upload_label: "Excel-Datei (.xlsx, eine Zeile pro Projekt)"
 sidebar_hochgeladene_projekte_speichern: "Hochgeladene Projekte speichern"
 sidebar_annahmen_titel: "Globale Annahmen sichern / wiederherstellen"
-sidebar_annahmen_beschreibung: "Preiskurven, Betriebskosten und Einstellungen in Excel bearbeiten und wieder einspielen – praktisch, wenn Sie viele Werte auf einmal ändern."
+sidebar_annahmen_beschreibung: "Preiskurven, Betriebskosten und Einstellungen in Excel bearbeiten und wieder einspielen."
 sidebar_annahmen_excel: "Globale Annahmen als Excel"
 sidebar_annahmen_upload_label: "Excel-Datei (.xlsx)"
 sidebar_annahmen_uebernehmen: "Hochgeladene Excel-Datei übernehmen"
