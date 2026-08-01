@@ -1086,6 +1086,7 @@ def build_pdf_report(inputs: ReportInputs) -> bytes:
         txt("bericht.capex_sonstige"): capex.sonstige_extern_eur,
         "AGM": capex.agm_eur, "M&A": capex.m_and_a_eur,
         txt("bericht.capex_poenale_puffer_kurz"): capex.poenale_puffer_eur,
+        **{z.name: z.betrag_eur for z in capex.zusatzpositionen},
     }))
     story.append(Paragraph(txt("bericht.abb_7_caption"), _STYLE_CAPTION))
     story.append(Paragraph(txt("bericht.abschnitt_npv_diskontsatz"), _STYLE_H2))
@@ -1358,6 +1359,9 @@ def build_pdf_report(inputs: ReportInputs) -> bytes:
         (txt("bericht.capex_sonstige") + " extern", capex.sonstige_extern_eur),
         ("AGM", capex.agm_eur), ("M&A", capex.m_and_a_eur),
         (txt("oberflaeche.formular_capex_poenale"), capex.poenale_puffer_eur),
+        # Frei benannte Zusatzpositionen des Nutzers - in der Reihenfolge
+        # der Eingabe direkt hinter den Standardpositionen.
+        *[(z.name, z.betrag_eur) for z in capex.zusatzpositionen],
     ]:
         capex_zeilen.append([
             name, _de(wert),

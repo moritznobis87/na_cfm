@@ -1,5 +1,36 @@
 # Changelog
 
+## v4.28 – Frei benannte Zusatzpositionen (2026-08)
+
+- **Zusätzliche Investkosten- und Betriebskostenpositionen mit frei
+  gewählter Bezeichnung.** Das Projektformular enthält dafür je eine
+  dynamische Tabelle (`st.data_editor`, `num_rows="dynamic"`); Zeilen ohne
+  Bezeichnung werden verworfen, ein leerer Betrag zählt als 0.
+- Die Positionen wirken durchgängig:
+  - Investpositionen erhöhen `CapexBreakdown.summe_eur` und damit
+    Finanzierung, Abschreibung und Cashflow – rechnerisch identisch zu
+    einer Erhöhung einer Standardkategorie.
+  - Betriebskostenpositionen werden in `resolve_assumptions()` hinter die
+    globalen Standardpositionen gehängt und durchlaufen dieselbe
+    Indexierungsvorschrift; jede erhält eine eigene Spalte der
+    Cashflow-Zeitreihe.
+  - Kostendiagramm, Legende, CAPEX-Ring und der PDF-Bericht (Annex A,
+    Positionsliste der Betriebskosten) folgen der Liste dynamisch.
+- **Namensvalidierung**: Bezeichnungen müssen nichtleer sein und dürfen
+  keine reservierte Spaltenbezeichnung der Cashflow-Zeitreihe tragen
+  (`RESERVIERTE_POSITIONSNAMEN`), da jede Position als Spalte geschrieben
+  wird.
+- Persistenz erweitert: YAML unverändert schemagetrieben, Excel um die
+  Spalten `capex_zusatzpositionen_json` und `zusatz_opex_json` – Projekte
+  ohne Zusatzpositionen bleiben unverändert lesbar.
+- Rechenmodell-Dokumentation aktualisiert (Kapitel 4.2 Investitionsvolumen,
+  8.2 Betriebskostenpositionen) und PDF neu gebaut.
+- Unzulässige Bezeichnungen werden beim Absenden als Hinweis am Formular
+  gemeldet statt als Fehlerseite.
+- 21 neue Tests (Namensvalidierung, Äquivalenz zur Standardposition,
+  eigene Zeitreihenspalte, YAML-/Excel-Roundtrip, Sichtbarkeit im
+  Bericht, Formulartabellen); Suite: 275.
+
 ## v4.27 – Investkosten je Feld umschaltbar (2026-08)
 
 - **Jedes Investkosten-Feld hat einen eigenen Umschalter** zwischen

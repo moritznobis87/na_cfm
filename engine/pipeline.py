@@ -37,7 +37,10 @@ from .timeline import build_timeline, erstjahr_zins_pro_rata
 def resolve_assumptions(
     project: PVProject, global_assumptions: GlobalAssumptions
 ) -> EffectiveAssumptions:
-    opex_items = list(global_assumptions.opex_standard)
+    # Globale Standardpositionen zuerst, danach die projektspezifischen
+    # Zusatzpositionen - die Reihenfolge bestimmt auch die Stapelreihenfolge
+    # im Kostendiagramm.
+    opex_items = list(global_assumptions.opex_standard) + list(project.zusatz_opex)
 
     szenario = global_assumptions.get_szenario(project.marktpreisszenario)
     if szenario is None:

@@ -490,17 +490,27 @@ aufgelösten Parametersatz transparent ausgewiesen.
 
 ## 4.2 Investitionsvolumen
 
-Das Investitionsvolumen ist die Summe der neun Kostenkategorien der
-Projektmaske:
+Das Investitionsvolumen ist die Summe der neun festen Kostenkategorien der
+Projektmaske und beliebig vieler frei benannter Zusatzpositionen:
 
-$$ I = \sum_{c\, \in\, \mathcal{C}} I_c $$
+$$ I = \sum_{c\, \in\, \mathcal{C}} I_c + \sum_{z\, \in\, \mathcal{Z}} I_z $$
 
 $$ \mathcal{C} = \{\text{EPC},\ \text{Netzanschluss},\ \text{Trasse},\ \text{Widmung},\ \text{Genehmigung},\ \text{Sonstige externe},\ \text{AGM},\ \text{M+A},\ \text{Pönalepuffer}\} $$
 
-Alle Kategorien werden als **Gesamtbeträge in Euro** erfasst, nicht
-spezifisch je kWp – so entspricht die Eingabe unmittelbar einem Angebot
-oder einer Kostenschätzung. Die spezifische Größe $I/P$ wird nur zur
-Anzeige gebildet.
+$\mathcal{Z}$ ist die je Projekt frei definierbare Menge zusätzlicher
+Investitionspositionen. Jede Position besteht aus einer Bezeichnung und
+einem Betrag; die Bezeichnung muss nichtleer sein und darf keine der
+reservierten Spaltenbezeichnungen der Cashflow-Zeitreihe tragen, damit die
+Ausgabestrukturen eindeutig bleiben. Rechnerisch sind die Zusatzpositionen
+den festen Kategorien gleichgestellt – sie erhöhen ausschließlich $I$ und
+wirken damit über die Finanzierungs-, Abschreibungs- und Cashflow-Kette
+identisch. Ist $\mathcal{Z}$ leer, reduziert sich die Formel auf die neun
+Standardkategorien.
+
+Alle Kategorien werden als **Gesamtbeträge in Euro** erfasst; die
+Projektmaske erlaubt je Feld wahlweise die Eingabe als spezifischer Wert
+(€/kWp), der intern unmittelbar mit $P$ multipliziert wird. Die spezifische
+Größe $I/P$ wird nur zur Anzeige gebildet.
 
 ## 4.3 Vollständigkeitsprüfung
 
@@ -759,7 +769,15 @@ Inbetriebnahme, die Eskalation beginnt daher im zweiten Betriebsjahr:
 
 $$ \Theta_t = (1 + \kappa)^{\,(t-1)^{+}} $$
 
-## 8.2 Standard-Betriebskostenpositionen
+## 8.2 Betriebskostenpositionen
+
+Die Positionsliste eines Projekts entsteht aus zwei Quellen: den in den
+Globalen Annahmen gepflegten Standardpositionen und den frei benannten
+Zusatzpositionen des Projekts. Beide werden in `resolve_assumptions()` zu
+einer Liste verkettet – Standardpositionen zuerst, danach die
+Zusatzpositionen. Die Reihenfolge bestimmt zugleich die Stapelreihenfolge
+in der Kostendarstellung. Für die Rechnung selbst besteht kein Unterschied:
+Jede Position durchläuft dieselbe Vorschrift.
 
 Jede Position $j$ trägt einen spezifischen Basiswert $w_j$ (€/kWp/Jahr),
 ein Startjahr $t^{\mathrm{start}}_j$, eine eigene Indexrate $g_j$ und ein
@@ -774,7 +792,11 @@ abgebildet werden können, die erst später einsetzen (z. B. eine Rücklage
 ab Jahr 11), ihren Preisstand aber ab Jahr 1 fortschreiben.
 
 Positionen mit identischer Bezeichnung werden aggregiert. Dadurch bleibt
-jede Bezeichnung in der Kostenaufschlüsselung eindeutig.
+jede Bezeichnung in der Kostenaufschlüsselung eindeutig. Für die
+Bezeichnung gilt dieselbe Einschränkung wie bei den Investitionspositionen:
+Sie muss nichtleer sein und darf keine der reservierten Spaltenbezeichnungen
+der Cashflow-Zeitreihe (etwa `opex_gesamt_eur` oder `erloes_eur`) tragen, da jede
+Position als eigene Spalte in die Zeitreihe geschrieben wird.
 
 ## 8.3 Produktionsbasierte Positionen
 

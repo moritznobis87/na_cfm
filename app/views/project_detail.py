@@ -437,6 +437,9 @@ def _render_financing_tab(result, df, project) -> None:
             txt("oberflaeche.projekt_capex_agm"): capex.agm_eur,
             txt("oberflaeche.projekt_capex_ma"): capex.m_and_a_eur,
             txt("oberflaeche.projekt_capex_poenale_puffer"): capex.poenale_puffer_eur,
+            # Frei benannte Zusatzpositionen des Projekts - erscheinen mit
+            # ihrer eigenen Bezeichnung als eigenes Segment.
+            **{z.name: z.betrag_eur for z in capex.zusatzpositionen},
         }
         if any(v > 0 for v in posten.values()):
             st.plotly_chart(charts.capex_donut_chart(posten), width="stretch")

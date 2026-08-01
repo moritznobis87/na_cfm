@@ -37,6 +37,7 @@ from .io_ergebnis_excel import pipeline_ergebnis_excel
 from .models import (
     AnlagenTyp,
     CapexBreakdown,
+    CapexPosition,
     DirektvermarktungsModus,
     EffectiveAssumptions,
     GlobalAssumptions,
@@ -87,6 +88,7 @@ __all__ = [
     "run_valuation_from_assumptions",
     "AnlagenTyp",
     "CapexBreakdown",
+    "CapexPosition",
     "DirektvermarktungsModus",
     "NegativeStundenRegel",
     "CashflowTimeseries",
