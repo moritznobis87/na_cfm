@@ -411,19 +411,39 @@ class TestFreieKostenpositionen:
         assert not at.exception
         return at
 
-    def test_beide_tabellen_sind_vorhanden(self, at: AppTest):
+    def test_beide_bloecke_starten_zugeklappt(self, at: AppTest):
+        """Zusatzpositionen sind der Ausnahmefall - die Tabellen sollen die
+        Maske nicht dauerhaft belasten."""
         at = self._formular(at)
+        schalter = {
+            t.key: t.value for t in at.get("toggle")
+            if t.key and t.key.endswith("_zusatz_anzeigen")
+        }
+        assert schalter == {
+            "neues_projekt_capex_zusatz_anzeigen": False,
+            "neues_projekt_opex_zusatz_anzeigen": False,
+        }
         # Der dynamische Editor erscheint im AppTest-Baum als "dataframe".
         keys = {e.key for e in at.get("dataframe") if e.key}
-        assert "neues_projekt_capex_zusatz" in keys
-        assert "neues_projekt_opex_zusatz" in keys
+        assert "neues_projekt_capex_zusatz" not in keys
+        assert "neues_projekt_opex_zusatz" not in keys
 
-    def test_tabellen_starten_leer(self, at: AppTest):
+    def test_schalter_blendet_die_tabelle_ein(self, at: AppTest):
         at = self._formular(at)
-        for key in ("neues_projekt_capex_zusatz", "neues_projekt_opex_zusatz"):
-            editor = [e for e in at.get("dataframe") if e.key == key][0]
-            assert editor.value.empty
-            assert list(editor.value.columns) == ["Position", "Wert"]
+        [t for t in at.get("toggle")
+         if t.key == "neues_projekt_capex_zusatz_anzeigen"][0].set_value(True)
+        at.run()
+        assert not at.exception
+
+        keys = {e.key for e in at.get("dataframe") if e.key}
+        assert "neues_projekt_capex_zusatz" in keys
+        # Der zweite Block bleibt davon unberuehrt.
+        assert "neues_projekt_opex_zusatz" not in keys
+
+        editor = [e for e in at.get("dataframe")
+                  if e.key == "neues_projekt_capex_zusatz"][0]
+        assert editor.value.empty
+        assert list(editor.value.columns) == ["Position", "Wert"]
 
     def test_zeilen_ohne_bezeichnung_werden_verworfen(self):
         """Eine leere Zeile im Editor (Nutzer klickt '+', tippt nichts)
