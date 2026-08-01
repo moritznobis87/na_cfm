@@ -328,6 +328,43 @@ PROJEKT_SPALTEN = [
     "capex_zusatzpositionen_json", "zusatz_opex_json",
 ]
 
+#: Spalten, die erst nachtraeglich hinzugekommen sind und in einer aelteren
+#: Exportdatei deshalb fehlen duerfen. Fuer jede von ihnen haelt
+#: excel_to_projects() eine Vorbelegung bereit.
+#:
+#: WICHTIG beim Ergaenzen einer neuen Spalte: Sie gehoert in DIESE Menge,
+#: sonst scheitert der Import jeder frueher gespeicherten Datei mit
+#: "Spalten fehlen" - und zwar bevor die .get()-Vorbelegung ueberhaupt
+#: erreicht wird.
+OPTIONALE_PROJEKT_SPALTEN = frozenset(
+    {
+        # seit v4.5
+        "aktiv",
+        # seit v4.19 (Pacht als Umsatzbeteiligung)
+        "pacht_modus", "pacht_umsatzbeteiligung_pct",
+        "pacht_mindestpacht_eur_ha_jahr",
+        # seit v4.22 (Widmung/Genehmigung als eigene CAPEX-Kategorien)
+        "capex_widmung_eur", "capex_genehmigung_eur",
+        # seit v4.28 (frei benannte Zusatzpositionen)
+        "capex_zusatzpositionen_json", "zusatz_opex_json",
+    }
+)
+
+
+def _zahl(reihe, spalte: str, standard: float = 0.0) -> float:
+    """Zahlenwert einer Zelle, tolerant gegen fehlende Spalte und Leerzelle.
+
+    Eine leere Zelle liest pandas als NaN. NaN ist in Python wahrheitswertig
+    wahr, ein ``wert or standard`` wuerde den Fehlwert also durchreichen und
+    die Investitionssumme unbrauchbar machen.
+    """
+    if spalte not in reihe:
+        return standard
+    wert = reihe[spalte]
+    if wert is None or pd.isna(wert):
+        return standard
+    return float(wert)
+
 
 def _json_liste(wert) -> list[dict]:
     """Liest eine als JSON-Text gespeicherte Positionsliste.
@@ -402,17 +439,13 @@ def projects_to_excel(projects: list[PVProject]) -> bytes:
 def excel_to_projects(file_bytes: bytes) -> list[PVProject]:
     df = pd.read_excel(io.BytesIO(file_bytes), sheet_name="Projekte", engine="openpyxl")
 
-    # "aktiv" (vor v4.5) und die drei Umsatzbeteiligungs-Pacht-Felder
-    # (vor v4.19) sind optional, damit aeltere Export-Dateien weiterhin
-    # importierbar bleiben - siehe die .get()-Fallbacks weiter unten,
-    # die genau fuer diesen Zweck geschrieben wurden. Diese Pruefung
-    # darf sie deshalb nicht als "fehlend" blockieren, sonst greift die
-    # Fallback-Logik nie.
-    optionale_spalten = {
-        "aktiv", "pacht_modus", "pacht_umsatzbeteiligung_pct",
-        "pacht_mindestpacht_eur_ha_jahr",
-    }
-    fehlende_spalten = set(PROJEKT_SPALTEN) - optionale_spalten - set(df.columns)
+    # Nachtraeglich hinzugekommene Spalten duerfen fehlen, damit aeltere
+    # Exportdateien importierbar bleiben - fuer sie greifen weiter unten
+    # die Vorbelegungen. Diese Pruefung darf sie deshalb nicht als
+    # "fehlend" blockieren, sonst wird die Vorbelegung nie erreicht.
+    fehlende_spalten = (
+        set(PROJEKT_SPALTEN) - OPTIONALE_PROJEKT_SPALTEN - set(df.columns)
+    )
     if fehlende_spalten:
         raise ValueError(f"Spalten fehlen in der Excel-Datei: {fehlende_spalten}")
 
@@ -469,8 +502,8 @@ def excel_to_projects(file_bytes: bytes) -> list[PVProject]:
                     netzanschluss_eur=float(r["capex_netzanschluss_eur"]),
                     trasse_eur=float(r["capex_trasse_eur"]),
                     # Aeltere Exporte kennen die Spalten noch nicht -> 0.
-                    widmung_eur=float(r.get("capex_widmung_eur", 0) or 0),
-                    genehmigung_eur=float(r.get("capex_genehmigung_eur", 0) or 0),
+                    widmung_eur=_zahl(r, "capex_widmung_eur"),
+                    genehmigung_eur=_zahl(r, "capex_genehmigung_eur"),
                     sonstige_extern_eur=float(r["capex_sonstige_extern_eur"]),
                     agm_eur=float(r["capex_agm_eur"]),
                     m_and_a_eur=float(r["capex_m_and_a_eur"]),

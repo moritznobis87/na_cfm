@@ -95,10 +95,25 @@ def _positionstabelle(
     entstuende beim zeilenweisen Aufbauen. Dieselbe Technik nutzen bereits
     die Globalen Annahmen fuer Preiskurven und Standardbetriebskosten.
 
+    Der Block ist hinter einem Schalter versteckt und standardmaessig
+    zugeklappt: Zusatzpositionen sind der Ausnahmefall, eine dauerhaft
+    sichtbare leere Tabelle wuerde die Maske nur belasten. Sind bereits
+    Positionen hinterlegt, startet der Schalter eingeschaltet - sonst
+    waeren sie beim Bearbeiten nicht auffindbar.
+
+    Bei ausgeschaltetem Schalter bleiben die gespeicherten Positionen
+    unveraendert erhalten; Ausblenden loescht nichts.
+
     Rueckgabe: bereinigte Liste - Zeilen ohne Bezeichnung entfallen,
     Betraege ohne Wert zaehlen als 0 (siehe _bereinige_positionen).
     """
-    st.markdown(titel)
+    schalter_key = f"{form_key}_{schluessel}_anzeigen"
+    if schalter_key not in st.session_state:
+        st.session_state[schalter_key] = bool(vorhandene)
+    st.toggle(titel, key=schalter_key, help=hilfe)
+    if not st.session_state[schalter_key]:
+        return list(vorhandene)
+
     st.caption(hilfe)
     tabelle = st.data_editor(
         pd.DataFrame(vorhandene or [], columns=["Position", "Wert"]),
