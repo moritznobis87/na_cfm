@@ -239,9 +239,7 @@ class TestBerichtKapitel8Ausgelagert:
             "abschnitt_auktion_fitting", "auktion_historie_intro",
             "auktion_historie_unterzeichnet", "auktion_historie_wettbewerb",
             "abb_14_caption", "auktion_fitting_intro", "abb_15_caption",
-            "modell_verteilungsfamilie", "modell_kalibrierung",
-            "modell_punktprognose_intro", "modell_punktprognose_ergebnis",
-            "modell_unsicherheit_intro", "modell_zuschlagsdichte_intro",
+            "auktion_modell_verweis",
             "abb_16_caption", "abb_17_caption",
             "tab_3_spalte_wahrscheinlichkeit", "tab_3_spalte_gebotswert",
             "tab_3_caption",
@@ -259,11 +257,18 @@ class TestBerichtKapitel8Ausgelagert:
                       projektwert_ct="6,50 ct/kWh")
         assert "6,65 ct/kWh" in text2 and "6,50 ct/kWh" in text2
 
-    def test_formel_zeile_platzhalter(self):
+    def test_modellherleitung_nur_in_der_dokumentation(self):
+        """Kapitel 8 verweist auf die Rechenmodell-Dokumentation, statt
+        die Herleitung selbst zu fuehren."""
+        import pathlib
+
         t = _setze_sprache("de")
-        text = t.txt("bericht.modell_punktprognose_ergebnis",
-                     formel_zeile="Test-Stützstellen: 1 → 2 ct.")
-        assert text.endswith("Test-Stützstellen: 1 → 2 ct.")
+        assert "Rechenmodell-Dokumentation" in t.txt(
+            "bericht.auktion_modell_verweis"
+        )
+        quelle = pathlib.Path("app/report.py").read_text(encoding="utf-8")
+        assert "modell_verteilungsfamilie" not in quelle
+        assert "_formel(" not in quelle
 
     def test_report_nutzt_ausgelagerte_texte(self):
         """Der generierte PDF-Bericht enthaelt die ausgelagerten Absaetze

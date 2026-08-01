@@ -191,8 +191,8 @@ def render_overview() -> None:
                 <span class="card-title">{html.escape(project.name)}</span> {typ_badge}<br/>
                 <span class="card-sub">{fmt_kwp(project.nennleistung_kwp)} · IBN {project.inbetriebnahme_jahr}</span><br/>
                 <span class="card-kpi">{fmt_pct(kpis.equity_irr)}</span>
-                <span class="card-kpi-label"> EK-Rendite</span><br/>
-                <span class="card-sub">EK {fmt_eur(kpis.eigenkapital_eur)}</span>
+                <span class="card-kpi-label"> Equity IRR</span><br/>
+                <span class="card-sub">Equity {fmt_eur(kpis.eigenkapital_eur)}</span>
                 </div>""",
                 unsafe_allow_html=True,
             )

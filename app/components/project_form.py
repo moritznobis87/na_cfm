@@ -85,10 +85,6 @@ def render_project_form(
 
     st.markdown(txt("oberflaeche.formular_investkosten_titel"))
     capex_defaults = existing.capex if existing else CapexBreakdown()
-    capex_einheit = st.radio(
-        "Einheit", options=["€/kWp", "€"], horizontal=True,
-        key=f"{form_key}_capex_einheit",
-    )
 
     # Der EPC-Default haengt vom Anlagentyp ab. Ein Anlagentyp-Wechsel muss
     # den vorbelegten Wert deshalb ebenfalls neu triggern, sonst bleibt der
@@ -100,10 +96,6 @@ def render_project_form(
     if anlagentyp_changed and not existing:
         st.session_state.pop(f"{form_key}_epc", None)
 
-    capex_mode_key = f"{form_key}_capex_mode_prev"
-    capex_mode_changed = st.session_state.get(capex_mode_key) != capex_einheit
-    st.session_state[capex_mode_key] = capex_einheit
-
     def capex_feld(
         col,
         label: str,
@@ -111,28 +103,109 @@ def render_project_form(
         key_suffix: str,
         default_eur_kwp: float | None = None,
     ) -> float:
-        """default_eur_kwp: expliziter Vorbelegungswert fuer den
+        """Ein Investkosten-Feld mit eigenem Einheiten-Umschalter.
+
+        Jedes Feld laesst sich einzeln zwischen spezifischer Eingabe
+        (€/kWp, Vorbelegung) und Gesamtbetrag (€) umschalten. Der
+        Umschalter steht unter dem Feld und wird VOR dem Zahlenfeld
+        ausgewertet: Streamlit hat den neuen Schalterzustand beim
+        folgenden Rerun bereits im Session-State, sodass Beschriftung
+        und Wert im selben Durchlauf zusammenpassen.
+
+        Beim Umschalten wird der EINGEGEBENE Wert umgerechnet, nicht die
+        Vorbelegung neu gesetzt - eine bereits erfasste Zahl geht damit
+        nicht verloren.
+
+        default_eur_kwp: expliziter Vorbelegungswert fuer den
         €/kWp-Modus (z.B. Widmung 1 €/kWp bei 10.000 € absolut) - ohne
-        Angabe wird er wie bisher aus dem Absolutwert abgeleitet."""
+        Angabe wird er aus dem Absolutwert abgeleitet.
+        """
         key = f"{form_key}_{key_suffix}"
-        if capex_mode_changed or key not in st.session_state:
-            if capex_einheit == "€/kWp":
-                if default_eur_kwp is not None and not existing:
-                    st.session_state[key] = default_eur_kwp
-                else:
-                    st.session_state[key] = (
-                        round(default_abs_eur / nennleistung_kwp, 1)
-                        if nennleistung_kwp
-                        else 0.0
-                    )
-            else:
+        schalter_key = f"{key}_absolut"
+        vorher_key = f"{key}_absolut_prev"
+        absolut = bool(st.session_state.get(schalter_key, False))
+        vorher = st.session_state.get(vorher_key)
+
+        if key not in st.session_state:
+            if absolut:
                 st.session_state[key] = default_abs_eur
-        einheit_label = "€/kWp" if capex_einheit == "€/kWp" else "€"
-        schritt = 1.0 if capex_einheit == "€/kWp" else 1000.0
+            elif default_eur_kwp is not None and not existing:
+                st.session_state[key] = default_eur_kwp
+            else:
+                st.session_state[key] = (
+                    round(default_abs_eur / nennleistung_kwp, 1)
+                    if nennleistung_kwp
+                    else 0.0
+                )
+        elif vorher is not None and vorher != absolut and nennleistung_kwp:
+            wert = float(st.session_state[key])
+            st.session_state[key] = (
+                round(wert * nennleistung_kwp, 0) if absolut
+                else round(wert / nennleistung_kwp, 2)
+            )
+        st.session_state[vorher_key] = absolut
+
+        einheit_label = "€" if absolut else "€/kWp"
         eingabe = col.number_input(
-            f"{label} ({einheit_label})", min_value=0.0, step=schritt, key=key,
+            f"{label} ({einheit_label})", min_value=0.0,
+            step=1000.0 if absolut else 1.0, key=key,
         )
-        return eingabe * nennleistung_kwp if capex_einheit == "€/kWp" else eingabe
+        col.toggle(
+            txt("oberflaeche.formular_capex_toggle_absolut"),
+            key=schalter_key,
+            help=txt("oberflaeche.formular_capex_toggle_hilfe"),
+        )
+        return eingabe if absolut else eingabe * nennleistung_kwp
+
+    epc_default_eur_kwp = EPC_DEFAULT_EUR_KWP[anlagentyp_label]
+    c1, c2, c3, c4 = st.columns(4)
+    epc = capex_feld(
+        c1, "EPC",
+        capex_defaults.epc_eur
+        if existing
+        else nennleistung_kwp * epc_default_eur_kwp,
+        "epc",
+    )
+    netzanschluss = capex_feld(
+        c2, "Netzanschluss",
+        capex_defaults.netzanschluss_eur if existing else nennleistung_kwp * 50.0,
+        "netz",
+    )
+    trasse = capex_feld(
+        c3, "Trasse",
+        capex_defaults.trasse_eur if existing else nennleistung_kwp * 40.0,
+        "trasse",
+    )
+    widmung = capex_feld(
+        c4, "Widmung",
+        capex_defaults.widmung_eur if existing else 10000.0,
+        "widmung",
+        default_eur_kwp=1.0,
+    )
+    c5, c6, c7, c8 = st.columns(4)
+    genehmigung = capex_feld(
+        c5, "Genehmigung",
+        capex_defaults.genehmigung_eur if existing else 80000.0,
+        "genehmigung",
+        default_eur_kwp=8.0,
+    )
+    sonstige_extern = capex_feld(
+        c6, "Sonstige Extern",
+        capex_defaults.sonstige_extern_eur if existing else 40000.0,
+        "sonst",
+    )
+    agm = capex_feld(
+        c7, "AGM", capex_defaults.agm_eur if existing else 30000.0, "agm",
+    )
+    m_and_a = capex_feld(
+        c8, "M&A", capex_defaults.m_and_a_eur if existing else 20000.0, "ma",
+    )
+    c9, _, _, _ = st.columns(4)
+    poenale = capex_feld(
+        c9, txt("oberflaeche.formular_capex_poenale"),
+        capex_defaults.poenale_puffer_eur if existing else 35000.0,
+        "poenale",
+    )
 
     st.markdown("**Pacht**")
     global_assumptions = services.get_global_assumptions()
@@ -332,57 +405,6 @@ def render_project_form(
                 "Pacht (€/kWp/Jahr)", min_value=0.0, step=0.1, key=pacht_kwp_key,
             )
             flaeche_ha = existing.projektflaeche_ha if existing else None
-
-        st.markdown("**Investkosten (Details)**")
-        epc_default_eur_kwp = EPC_DEFAULT_EUR_KWP[anlagentyp_label]
-        c1, c2, c3, c4 = st.columns(4)
-        epc = capex_feld(
-            c1, "EPC",
-            capex_defaults.epc_eur
-            if existing
-            else nennleistung_kwp * epc_default_eur_kwp,
-            "epc",
-        )
-        netzanschluss = capex_feld(
-            c2, "Netzanschluss",
-            capex_defaults.netzanschluss_eur if existing else nennleistung_kwp * 50.0,
-            "netz",
-        )
-        trasse = capex_feld(
-            c3, "Trasse",
-            capex_defaults.trasse_eur if existing else nennleistung_kwp * 40.0,
-            "trasse",
-        )
-        widmung = capex_feld(
-            c4, "Widmung",
-            capex_defaults.widmung_eur if existing else 10000.0,
-            "widmung",
-            default_eur_kwp=1.0,
-        )
-        c5, c6, c7, c8 = st.columns(4)
-        genehmigung = capex_feld(
-            c5, "Genehmigung",
-            capex_defaults.genehmigung_eur if existing else 80000.0,
-            "genehmigung",
-            default_eur_kwp=8.0,
-        )
-        sonstige_extern = capex_feld(
-            c6, "Sonstige Extern",
-            capex_defaults.sonstige_extern_eur if existing else 40000.0,
-            "sonst",
-        )
-        agm = capex_feld(
-            c7, "AGM", capex_defaults.agm_eur if existing else 30000.0, "agm",
-        )
-        m_and_a = capex_feld(
-            c8, "M&A", capex_defaults.m_and_a_eur if existing else 20000.0, "ma",
-        )
-        c9, _, _, _ = st.columns(4)
-        poenale = capex_feld(
-            c9, txt("oberflaeche.formular_capex_poenale"),
-            capex_defaults.poenale_puffer_eur if existing else 35000.0,
-            "poenale",
-        )
 
         button_label = (
             txt("oberflaeche.formular_btn_speichern") if existing

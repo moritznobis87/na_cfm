@@ -29,7 +29,6 @@ abschnitt_tornado: "Análisis tornado"
 abschnitt_eag_varianten: "Variantes del valor de adjudicación EAG"
 abschnitt_auktion_historie: "Historial de las subastas"
 abschnitt_auktion_fitting: "Ajuste de las funciones de distribución a las rondas históricas"
-abschnitt_auktion_modell: "Descripción del modelo"
 abschnitt_auktion_prognose: "Previsión de la próxima ronda"
 abschnitt_opex_positionen: "Partidas de costes operativos"
 abschnitt_capex: "Inversión en capital"
@@ -110,54 +109,6 @@ abb_15_caption: >-
   color de gris = ronda más antigua a rojo = ronda más reciente; rondas
   infrasuscritas discontinuas).
 
-modell_verteilungsfamilie: >-
-  Familia de distribución. Las ofertas b se modelan como una
-  distribución gamma inversa reflejada en el precio máximo
-  P<sub>max</sub>: b = P<sub>max</sub> − Y con Y ~ InvGamma(α, β). La
-  densidad cae muy abruptamente a cero hacia el límite máximo y decae
-  lentamente hacia la izquierda, exactamente la forma esperada para
-  pay-as-bid bajo competencia:
-
-modell_kalibrierung: >-
-  Calibración por ronda. Los parámetros (α, β) de cada ronda se derivan
-  de las dos condiciones (media ponderada m̄, mínimo b<sub>min</sub>,
-  valor de adjudicación marginal p<sub>m</sub>, ε = 0,02); la tasa de
-  sobresuscripción de las rondas sobresuscritas es latente:
-
-modell_punktprognose_intro: >-
-  Previsión puntual de la próxima ronda. El valor de adjudicación
-  marginal y el valor de adjudicación medio se extrapolan por separado
-  mediante extrapolación recursiva de diferencias sobre las rondas
-  competitivas. Para una serie temporal x<sub>t</sub>, las diferencias
-  se forman de manera recursiva; el orden más alto utilizado, m, se
-  mantiene constante, y todos los órdenes inferiores se prolongan
-  recursivamente, amortiguados por λ<sub>k</sub> ∈ [0, 1]
-  (predeterminado: m = 2, λ = 1):
-
-modell_punktprognose_ergebnis: >-
-  El método tiene en cuenta así tanto la tendencia como su variación:
-  si el descenso se aplana, prevé un mayor aplanamiento en lugar de una
-  extrapolación constante. El mínimo sigue un paseo aleatorio (sin
-  dinámica estable en el historial); a continuación se proyecta sobre
-  mínimo ≤ media ≤ valor de adjudicación marginal < P<sub>max</sub>, y a
-  partir de las previsiones puntuales se construye la distribución de
-  la próxima ronda (la condición de la media se pondera fuertemente, el
-  mínimo actúa como anclaje suave de la cola). {formel_zeile}
-
-modell_unsicherheit_intro: >-
-  Incertidumbre y decisión de la oferta. La incertidumbre del valor de
-  adjudicación marginal se modela como una distribución normal
-  truncada en el límite máximo alrededor de la previsión puntual (σ a
-  partir de la dispersión de las variaciones históricas entre rondas).
-  Como tomador de precios, la probabilidad de adjudicación de la
-  propia oferta y la oferta recomendada para una probabilidad objetivo
-  z vienen dadas por:
-
-modell_zuschlagsdichte_intro: >-
-  La distribución de valores de adjudicación mostrada es la densidad
-  de ofertas truncada y renormalizada en el valor de adjudicación
-  marginal:
-
 abb_16_caption: >-
   Fig. 16: distribución prevista de la próxima ronda: densidad de los
   valores de adjudicación (truncada en el valor de adjudicación
@@ -181,7 +132,6 @@ tab_3_caption: >-
 
 
 # --- Lote 2: portada, capítulos 1-7, anexos A/B ---
-auktion_formel_zeile: "Puntos de apoyo, valor de adjudicación marginal: {maxes} ct ⇒ previsión {grenzzuschlag} ct; previsión media {mittel} ct."
 chart_umsatzerloese_label: "Ingresos"
 chart_betriebskosten_label: "Costes
 operativos"
@@ -327,3 +277,44 @@ steuermodus_pauschal: "Tipo fijo sobre el EBT"
 steuermodus_afa_at: "Impuesto de sociedades con amortización (Austria)"
 steuermodus_gewerbesteuer_de: "Impuesto comercial (Alemania)"
 gewerbesteuer_hebesatz_kurz: "Multiplicador municipal"
+
+# --- DSCR-Kovenanten -----------------------------------------------------
+abschnitt_kovenanten: "Covenants de DSCR: bloqueo de distribuciones y aportación de capital"
+dscr_linie_cash_trap: "Cash trap {wert}x"
+dscr_linie_event_of_default: "Event of default {wert}x"
+kovenanten_spalte_schwelle: "Umbral"
+kovenanten_spalte_wert: "Valor"
+kovenanten_spalte_jahre: "Años de operación afectados"
+kovenanten_zeile_cash_trap: "Cash trap (bloqueo de distribuciones)"
+kovenanten_zeile_event_of_default: "Event of default (aportación de capital)"
+kovenanten_zeile_min_dscr: "DSCR mínimo durante el plazo del préstamo"
+kovenanten_spalte_deckung: "Cobertura de la aportación"
+kovenanten_spalte_betrag: "Importe"
+kovenanten_deckung_reserve: "Con la reserva retenida (cash trap)"
+kovenanten_deckung_ausschuettung: "Con capital ya distribuido"
+kovenanten_deckung_extern: "Con capital externo adicional"
+kovenanten_deckung_summe: "Total de la aportación de capital"
+kovenanten_text_ok: "El DSCR mínimo es de {dscr} y se sitúa por encima de ambos umbrales ({trap} cash trap, {eod} event of default). No se espera ni bloqueo de distribuciones ni aportación de capital durante el plazo del préstamo."
+kovenanten_text_cash_trap: "En {anzahl} año(s) de operación el DSCR cae por debajo del umbral de cash trap de {trap}: {jahre}. En esos años no se permite distribución; el flujo de caja libre permanece como reserva en la sociedad y queda disponible para el servicio de la deuda posterior."
+kovenanten_text_event_of_default: "En {anzahl} año(s) de operación el DSCR cae por debajo del umbral de event of default de {eod}: {jahre}. Ello constituye un incumplimiento contractual que suele subsanarse mediante una aportación de capital. La necesidad acumulada asciende a {betrag}."
+kovenanten_text_intern: "La aportación está totalmente cubierta por fondos generados previamente por el proyecto ({intern}): la reserva retenida y el capital ya distribuido son suficientes. No se requiere capital externo adicional durante el plazo."
+kovenanten_text_extern: "{extern} de la aportación no está cubierto por fondos propios (disponible internamente: {intern}). La sociedad necesita capital externo adicional por ese importe durante el plazo. Las medidas habituales son una menor cuota de deuda, un plazo de préstamo más largo o un primer año sin amortización."
+
+auktion_modell_verweis: >-
+  La estructura matemática del modelo de subastas (familias de distribución,
+  calibración por ronda, vínculo de competencia, extrapolación por
+  diferencias y distribución predictiva) se describe íntegramente en la
+  documentación del modelo de cálculo (capítulo 15). Este informe muestra
+  los datos, el ajuste y el resultado de la previsión.
+
+summary_nachschuss_extern: >-
+  <b>Riesgo de financiación:</b> en {anzahl} año(s) de operación el DSCR cae
+  por debajo del umbral de event of default de {eod}. La aportación
+  acumulada asciende a {betrag}, de los cuales {extern} no están cubiertos
+  por fondos generados previamente; se requiere capital externo por ese
+  importe (detalles en el capítulo 4).
+summary_nachschuss_intern: >-
+  <b>Nota:</b> en {anzahl} año(s) de operación el DSCR cae por debajo del
+  umbral de event of default de {eod}. La aportación acumulada de {betrag}
+  está totalmente cubierta por fondos generados previamente; no se requiere
+  capital externo (detalles en el capítulo 4).

@@ -29,7 +29,6 @@ abschnitt_tornado: "Tornado-Analyse"
 abschnitt_eag_varianten: "EAG-Zuschlagswert-Varianten"
 abschnitt_auktion_historie: "Historie der Ausschreibungen"
 abschnitt_auktion_fitting: "Anpassung der Verteilungsfunktionen an die historischen Runden"
-abschnitt_auktion_modell: "Modellbeschreibung"
 abschnitt_auktion_prognose: "Prognose der nächsten Runde"
 abschnitt_opex_positionen: "Betriebskosten-Positionen"
 abschnitt_capex: "Investitionskosten"
@@ -101,47 +100,6 @@ abb_15_caption: >-
   Abb. 15: Je Runde geschätzte Gebotsverteilungen (Farbverlauf von grau =
   älteste zu rot = jüngste Runde; unterzeichnete Runden gestrichelt).
 
-modell_verteilungsfamilie: >-
-  Verteilungsfamilie. Gebote b werden als an der Preisobergrenze
-  P<sub>max</sub> gespiegelte Inverse-Gamma-Verteilung modelliert:
-  b = P<sub>max</sub> − Y mit Y ~ InvGamma(α, β). Die Dichte fällt rechts zur
-  Obergrenze sehr steil auf null und läuft nach links langsam aus – exakt
-  das für Pay-as-Bid unter Wettbewerb erwartete Bild:
-
-modell_kalibrierung: >-
-  Kalibrierung je Runde. Die Parameter (α, β) je Runde folgen aus den
-  beiden Bedingungen (mengengewichteter Durchschnitt m̄, Minimum
-  b<sub>min</sub>, Grenzzuschlag p<sub>m</sub>, ε = 0,02); die
-  Wettbewerbsquote überzeichneter Runden ist latent:
-
-modell_punktprognose_intro: >-
-  Punktprognose der nächsten Runde. Grenzzuschlag und Ø-Zuschlag werden
-  getrennt per rekursiver Differenzenextrapolation über die
-  Wettbewerbsrunden fortgeschrieben. Für eine Zeitreihe x<sub>t</sub>
-  werden Differenzen rekursiv gebildet; die höchste verwendete Ordnung m
-  bleibt konstant, alle niedrigeren werden – gedämpft mit λ<sub>k</sub> ∈
-  [0, 1] – rekursiv fortgeschrieben (Standard: m = 2, λ = 1):
-
-modell_punktprognose_ergebnis: >-
-  Das Verfahren berücksichtigt damit Trend und Trendänderung: Flacht der
-  Rückgang ab, erwartet es eine weitere Abflachung statt konstanter
-  Fortschreibung. Das Minimum folgt einem Random Walk (keine stabile
-  Dynamik in der Historie); anschließend wird auf Minimum ≤ Ø ≤
-  Grenzzuschlag < P<sub>max</sub> projiziert und aus den Punktprognosen
-  die Verteilung der nächsten Runde gebaut (Ø-Bedingung stark gewichtet,
-  Minimum als weicher Tail-Anker). {formel_zeile}
-
-modell_unsicherheit_intro: >-
-  Unsicherheit und Gebotsentscheidung. Die Unsicherheit des
-  Grenzzuschlags wird als an der Obergrenze trunkierte Normalverteilung
-  um die Punktprognose modelliert (σ aus der Streuung der historischen
-  Rundenänderungen). Als Price-Taker gilt für die Zuschlagswahrscheinlichkeit
-  des eigenen Gebots und das empfohlene Gebot zur Zielwahrscheinlichkeit z:
-
-modell_zuschlagsdichte_intro: >-
-  Die dargestellte Verteilung der Zuschlagswerte ist die am Grenzzuschlag
-  abgeschnittene, renormierte Gebotsdichte:
-
 abb_16_caption: >-
   Abb. 16: Prognostizierte Verteilung der nächsten Runde – Dichte der
   Zuschlagswerte (am Grenzzuschlag {grenzzuschlag_ct} abgeschnitten),
@@ -160,8 +118,6 @@ tab_3_caption: >-
   (Quantile der prognostizierten Grenzzuschlag-Verteilung).
 
 # --- Kapitel 8: dynamische Formel-Zeile (app/services.py) --------------------
-auktion_formel_zeile: "Stützstellen Grenzzuschlag: {maxes} ct ⇒ Prognose {grenzzuschlag} ct; Ø-Prognose {mittel} ct."
-
 # --- Charts Kapitel 1-4 (Matplotlib-Labels; teils dieselben Begriffe ---
 # --- wie diagramme.yaml, dort wiederverwendet) --------------------------
 chart_umsatzerloese_label: "Umsatz-\nerlöse"
@@ -310,3 +266,45 @@ steuermodus_pauschal: "Pauschal auf EBT"
 steuermodus_afa_at: "AfA-Körperschaftsteuer (Österreich)"
 steuermodus_gewerbesteuer_de: "Gewerbesteuer (Deutschland)"
 gewerbesteuer_hebesatz_kurz: "Hebesatz"
+
+# --- DSCR-Kovenanten -----------------------------------------------------
+abschnitt_kovenanten: "DSCR-Kovenanten: Ausschüttungssperre und Nachschusspflicht"
+dscr_linie_cash_trap: "Cash Trap {wert}x"
+dscr_linie_event_of_default: "Event of Default {wert}x"
+kovenanten_spalte_schwelle: "Schwelle"
+kovenanten_spalte_wert: "Wert"
+kovenanten_spalte_jahre: "Betroffene Betriebsjahre"
+kovenanten_zeile_cash_trap: "Cash Trap (Ausschüttungssperre)"
+kovenanten_zeile_event_of_default: "Event of Default (Nachschusspflicht)"
+kovenanten_zeile_min_dscr: "Minimaler DSCR der Kreditlaufzeit"
+kovenanten_spalte_deckung: "Deckung des Nachschusses"
+kovenanten_spalte_betrag: "Betrag"
+kovenanten_deckung_reserve: "Aus einbehaltener Reserve (Cash Trap)"
+kovenanten_deckung_ausschuettung: "Aus bereits ausgeschüttetem Kapital"
+kovenanten_deckung_extern: "Aus zusätzlichem externem Kapital"
+kovenanten_deckung_summe: "Summe Eigenkapitalnachschuss"
+kovenanten_text_ok: "Der minimale Schuldendienstdeckungsgrad beträgt {dscr} und liegt damit über beiden Kovenantenschwellen ({trap} Cash Trap, {eod} Event of Default). Über die gesamte Kreditlaufzeit ist weder eine Ausschüttungssperre noch ein Eigenkapitalnachschuss zu erwarten."
+kovenanten_text_cash_trap: "In {anzahl} Betriebsjahr(en) unterschreitet der DSCR die Cash-Trap-Schwelle von {trap}: {jahre}. In diesen Jahren darf nicht ausgeschüttet werden; der freie Cashflow verbleibt als Reserve in der Gesellschaft und steht für spätere Schuldendienste zur Verfügung."
+kovenanten_text_event_of_default: "In {anzahl} Betriebsjahr(en) unterschreitet der DSCR die Event-of-Default-Schwelle von {eod}: {jahre}. Damit liegt eine Vertragsverletzung vor, die üblicherweise durch eine Eigenkapitaleinlage geheilt wird. Der kumulierte Nachschussbedarf beträgt {betrag}."
+kovenanten_text_intern: "Der Nachschuss ist vollständig aus Mitteln gedeckt, die das Projekt zuvor selbst erwirtschaftet hat ({intern}): Einbehaltene Reserve und bereits ausgeschüttetes Kapital reichen aus. Zusätzliches externes Kapital ist innerhalb der Laufzeit nicht erforderlich."
+kovenanten_text_extern: "{extern} des Nachschussbedarfs sind nicht aus eigenen Mitteln gedeckt (intern verfügbar: {intern}). Die Gesellschaft benötigt innerhalb der Laufzeit zusätzliches externes Kapital in dieser Höhe. Wirksame Gegenmaßnahmen sind in der Regel eine niedrigere Fremdkapitalquote, eine längere Kreditlaufzeit oder ein tilgungsfreies Anlaufjahr."
+
+auktion_modell_verweis: >-
+  Der mathematische Aufbau des Ausschreibungsmodells – Verteilungsfamilien,
+  Kalibrierung je Runde, Wettbewerbs-Link, Differenzenextrapolation und
+  Prognoseverteilung – ist vollständig in der Rechenmodell-Dokumentation
+  beschrieben (Kapitel 15). Dieser Bericht zeigt Datenlage, Anpassung und
+  Prognoseergebnis.
+
+summary_nachschuss_extern: >-
+  <b>Finanzierungsrisiko:</b> In {anzahl} Betriebsjahr(en) unterschreitet der
+  Schuldendienstdeckungsgrad die Event-of-Default-Schwelle von {eod}. Der
+  kumulierte Eigenkapitalnachschuss beträgt {betrag}, davon {extern} nicht
+  aus zuvor selbst erwirtschafteten Mitteln gedeckt – in dieser Höhe ist
+  zusätzliches externes Kapital erforderlich (Details in Kapitel 4).
+summary_nachschuss_intern: >-
+  <b>Hinweis:</b> In {anzahl} Betriebsjahr(en) unterschreitet der
+  Schuldendienstdeckungsgrad die Event-of-Default-Schwelle von {eod}. Der
+  kumulierte Eigenkapitalnachschuss von {betrag} ist vollständig aus zuvor
+  selbst erwirtschafteten Mitteln gedeckt; externes Kapital ist nicht
+  erforderlich (Details in Kapitel 4).

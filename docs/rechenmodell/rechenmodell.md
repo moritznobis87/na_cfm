@@ -1062,7 +1062,7 @@ Kreditverträge belegen den Schuldendienstdeckungsgrad mit zwei Schwellen.
 Beide wirken **nicht** auf die Cashflow-Rechnung zurück; sie werden auf
 der fertigen Zeitreihe ausgewertet.
 
-$$ s_{\mathrm{trap}} = \text{Cash-Trap-Schwelle (Vorbelegung } 1{,}10\text{)}, \qquad s_{\mathrm{eod}} = \text{Event-of-Default-Schwelle (Vorbelegung } 1{,}00\text{)} $$
+$$ s_{\mathrm{trap}} = \text{Cash-Trap-Schwelle (Vorbelegung } 1{,}10\text{)}, \qquad s_{\mathrm{eod}} = \text{Event-of-Default-Schwelle (Vorbelegung } 1{,}05\text{)} $$
 
 **Ereignisse.** Für alle Perioden mit $\mathrm{DS}_t > 0$:
 

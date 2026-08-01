@@ -57,7 +57,7 @@ EINSTELLUNGEN_DEFAULTS = {
     "tilgungsfreies_anlaufjahr": "NEIN",
     "zinsmethode": "oesterreich_act_365",
     "dscr_cash_trap": 1.10,
-    "dscr_event_of_default": 1.00,
+    "dscr_event_of_default": 1.05,
     "tax_modus": "afa_koerperschaftsteuer",
     "steuersatz_pct": 23.0,
     "afa_nutzungsdauer_jahre": None,

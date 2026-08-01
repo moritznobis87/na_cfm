@@ -418,8 +418,8 @@ class GlobalAssumptions(BaseModel):
     dscr_cash_trap: float = Field(ge=0, default=1.10)
     #: Event of Default: Unterhalb dieses DSCR liegt eine
     #: Vertragsverletzung vor, die ueblicherweise durch eine
-    #: Eigenkapitaleinlage geheilt wird (Equity Cure). Marktueblich 1,00x.
-    dscr_event_of_default: float = Field(ge=0, default=1.00)
+    #: Eigenkapitaleinlage geheilt wird (Equity Cure). Marktueblich 1,05x.
+    dscr_event_of_default: float = Field(ge=0, default=1.05)
 
     # Steuer
     tax_modus: TaxModus = TaxModus.AFA_KOERPERSCHAFTSTEUER

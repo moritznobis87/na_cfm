@@ -277,15 +277,40 @@ def _chart_erloes_split(df: pd.DataFrame) -> Image:
     return _fig_zu_bild(fig)
 
 
-def _chart_dscr(df: pd.DataFrame) -> Image:
+def _chart_dscr(
+    df: pd.DataFrame,
+    schwelle_trap: float = 1.10,
+    schwelle_eod: float = 1.00,
+) -> Image:
+    """DSCR je Betriebsjahr mit beiden Kovenantenschwellen.
+
+    Die Balkenfarbe folgt derselben Ampel wie die Statusmeldung in der
+    Anwendung: rot unterhalb der Event-of-Default-Schwelle, gedaempft
+    unterhalb des Cash Traps, sonst gruen.
+    """
     dscr = df.dropna(subset=["dscr"])
     fig, ax = _fig(5.8)
-    farben = [POSITIVE if v >= 1 else NEGATIVE for v in dscr["dscr"]]
+    farben = [
+        NEGATIVE if v < schwelle_eod else (NEUTRAL if v < schwelle_trap else POSITIVE)
+        for v in dscr["dscr"]
+    ]
     ax.bar(dscr["jahr"], dscr["dscr"], color=farben, width=0.7)
-    ax.axhline(1.0, color=BRAND, linewidth=1.1, linestyle="--")
-    ax.annotate("Deckungsgrenze 1,0x", (dscr["jahr"].iloc[0], 1.0),
-                textcoords="offset points", xytext=(0, 5), color=BRAND,
-                fontsize=7.5)
+    # Beide Schwellen liegen dicht beieinander - die Beschriftungen werden
+    # deshalb an gegenueberliegende Enden gesetzt und gegenlaeufig
+    # ausgerichtet, damit sie sich nicht ueberlagern.
+    links, rechts = dscr["jahr"].iloc[0], dscr["jahr"].iloc[-1]
+    for wert, farbe, schluessel, x, ha, dy in (
+        (schwelle_trap, INK_SOFT, "bericht.dscr_linie_cash_trap", links, "left", 4),
+        (schwelle_eod, NEGATIVE, "bericht.dscr_linie_event_of_default", rechts,
+         "right", -10),
+    ):
+        ax.axhline(wert, color=farbe, linewidth=1.1, linestyle="--")
+        ax.annotate(
+            txt(schluessel, wert=_de(wert, 2)), (x, wert),
+            textcoords="offset points", xytext=(0, dy), color=farbe,
+            fontsize=7.2, ha=ha,
+            bbox=dict(facecolor="white", edgecolor="none", pad=1.2, alpha=0.85),
+        )
     ax.set_xlabel("Betriebsjahr")
     ax.set_ylabel("DSCR (x)")
     return _fig_zu_bild(fig)
@@ -444,28 +469,6 @@ def _chart_szenarien(vergleich: SzenarioVergleich) -> Image:
         for seite in ("top", "right"):
             a.spines[seite].set_visible(False)
     return _fig_zu_bild(fig)
-
-
-def _formel(latex: str, fontsize: float = 11.5) -> Image:
-    """Rendert eine mathematische Formel (Matplotlib-Mathtext, LaTeX-
-    Syntax) als zentriertes Bild in Textfarbe."""
-    fig = plt.figure(figsize=(6.6, 0.6))
-    fig.patch.set_alpha(0.0)
-    fig.text(0.5, 0.5, latex, ha="center", va="center",
-             fontsize=fontsize, color=INK)
-    puffer = io.BytesIO()
-    fig.savefig(puffer, format="png", dpi=220, bbox_inches="tight",
-                pad_inches=0.05, transparent=True)
-    plt.close(fig)
-    puffer.seek(0)
-    from reportlab.lib.utils import ImageReader
-
-    b_px, h_px = ImageReader(puffer).getSize()
-    puffer.seek(0)
-    b_pt = min(b_px * 72.0 / 220.0, _INHALT_B * 0.94)
-    bild = Image(puffer, width=b_pt, height=b_pt * h_px / b_px)
-    bild.hAlign = "CENTER"
-    return bild
 
 
 def _chart_auktion_fits(modell) -> Image:
@@ -690,6 +693,99 @@ def _tabelle(daten: list[list[str]], breiten: list[float] | None = None,
     return tabelle
 
 
+def _jahresliste(jahre: list[int], hoechstens: int = 10) -> str:
+    """Betroffene Jahre als Aufzaehlung; lange Listen werden gekuerzt."""
+    if len(jahre) <= hoechstens:
+        return ", ".join(str(j) for j in jahre)
+    return (", ".join(str(j) for j in jahre[:hoechstens])
+            + f" … (+{len(jahre) - hoechstens})")
+
+
+def _kovenanten_abschnitt(inputs: ReportInputs) -> list:
+    """Abschnitt zu den DSCR-Kovenanten: Schwellen, betroffene Jahre und
+    die Frage, ob ein Nachschuss aus eigener Kraft gedeckt ist.
+
+    Bildet die Statusmeldungen der Anwendung im Bericht ab (siehe
+    engine/covenants.py und app/views/project_detail.py).
+    """
+    kovenanten = getattr(inputs.result, "kovenanten", None)
+    if kovenanten is None:
+        return []
+
+    fluss = [
+        Paragraph(txt("bericht.abschnitt_kovenanten"), _STYLE_H2),
+        _tabelle(
+            [
+                [txt("bericht.kovenanten_spalte_schwelle"),
+                 txt("bericht.kovenanten_spalte_wert"),
+                 txt("bericht.kovenanten_spalte_jahre")],
+                [txt("bericht.kovenanten_zeile_cash_trap"),
+                 fmt_dscr(kovenanten.schwelle_cash_trap),
+                 _jahresliste(kovenanten.jahre_cash_trap) or "–"],
+                [txt("bericht.kovenanten_zeile_event_of_default"),
+                 fmt_dscr(kovenanten.schwelle_event_of_default),
+                 _jahresliste(kovenanten.jahre_event_of_default) or "–"],
+                [txt("bericht.kovenanten_zeile_min_dscr"),
+                 fmt_dscr(kovenanten.dscr_min), "–"],
+            ],
+            breiten=[_INHALT_B * 0.42, _INHALT_B * 0.18, _INHALT_B * 0.40],
+        ),
+        Spacer(1, 0.25 * cm),
+    ]
+
+    if not kovenanten.hat_cash_trap and not kovenanten.hat_event_of_default:
+        fluss.append(Paragraph(txt(
+            "bericht.kovenanten_text_ok",
+            dscr=fmt_dscr(kovenanten.dscr_min),
+            trap=fmt_dscr(kovenanten.schwelle_cash_trap),
+            eod=fmt_dscr(kovenanten.schwelle_event_of_default),
+        ), _STYLE_TEXT))
+        return fluss
+
+    if kovenanten.hat_cash_trap:
+        fluss.append(Paragraph(txt(
+            "bericht.kovenanten_text_cash_trap",
+            anzahl=len(kovenanten.jahre_cash_trap),
+            jahre=_jahresliste(kovenanten.jahre_cash_trap),
+            trap=fmt_dscr(kovenanten.schwelle_cash_trap),
+        ), _STYLE_TEXT))
+
+    if kovenanten.hat_event_of_default:
+        fluss.append(Paragraph(txt(
+            "bericht.kovenanten_text_event_of_default",
+            anzahl=len(kovenanten.jahre_event_of_default),
+            jahre=_jahresliste(kovenanten.jahre_event_of_default),
+            eod=fmt_dscr(kovenanten.schwelle_event_of_default),
+            betrag=fmt_eur(kovenanten.nachschuss_gesamt_eur),
+        ), _STYLE_TEXT))
+
+    if kovenanten.nachschuss_gesamt_eur > 0:
+        fluss.append(_tabelle(
+            [
+                [txt("bericht.kovenanten_spalte_deckung"),
+                 txt("bericht.kovenanten_spalte_betrag")],
+                [txt("bericht.kovenanten_deckung_reserve"),
+                 fmt_eur(kovenanten.nachschuss_aus_reserve_eur)],
+                [txt("bericht.kovenanten_deckung_ausschuettung"),
+                 fmt_eur(kovenanten.nachschuss_aus_ausschuettung_eur)],
+                [txt("bericht.kovenanten_deckung_extern"),
+                 fmt_eur(kovenanten.nachschuss_extern_eur)],
+                [txt("bericht.kovenanten_deckung_summe"),
+                 fmt_eur(kovenanten.nachschuss_gesamt_eur)],
+            ],
+            breiten=[_INHALT_B * 0.68, _INHALT_B * 0.32],
+        ))
+        fluss.append(Spacer(1, 0.25 * cm))
+        fluss.append(Paragraph(txt(
+            "bericht.kovenanten_text_extern" if kovenanten.braucht_externes_kapital
+            else "bericht.kovenanten_text_intern",
+            extern=fmt_eur(kovenanten.nachschuss_extern_eur),
+            intern=fmt_eur(kovenanten.nachschuss_intern_eur),
+        ), _STYLE_TEXT))
+
+    return fluss
+
+
 def _kennzahlen_kacheln(paare: list[tuple[str, str]]) -> Table:
     """Fuenf KPI-'Kacheln' in einer Reihe - Pendant zur KPI-Leiste der App."""
     labels = [p[0] for p in paare]
@@ -742,8 +838,9 @@ class ReportInputs:
     #: Marken-Schalter, siehe app.branding) - Standard "Valyze".
     marken_name: str = "Valyze"
     # Optionales EAG-Ausschreibungsmodell: dict mit "df" (Historie),
-    # "prognose" (GebotsPrognose, Momentum-Modus), "formel_zeile" (Text
-    # mit eingesetzten Stuetzstellen). None -> Kapitel entfaellt.
+    # "prognose" (GebotsPrognose, Momentum-Modus) und "modell". Die
+    # mathematische Herleitung steht in der Rechenmodell-Dokumentation,
+    # nicht im Projektbericht. None -> Kapitel entfaellt.
     auktion: dict | None = None
 
 
@@ -891,6 +988,18 @@ def build_pdf_report(inputs: ReportInputs) -> bytes:
         prob_ziel=fmt_pct(prob_ziel, 0),
     )
     story.append(Paragraph(summary_text, _STYLE_TEXT))
+    # Ein Nachschussbedarf gehoert in die Zusammenfassung - er ist die
+    # Kernaussage der Kovenantenpruefung (Details in Kapitel 4).
+    kovenanten = getattr(inputs.result, "kovenanten", None)
+    if kovenanten is not None and kovenanten.nachschuss_gesamt_eur > 0:
+        story.append(Paragraph(txt(
+            "bericht.summary_nachschuss_extern" if kovenanten.braucht_externes_kapital
+            else "bericht.summary_nachschuss_intern",
+            betrag=fmt_eur(kovenanten.nachschuss_gesamt_eur),
+            extern=fmt_eur(kovenanten.nachschuss_extern_eur),
+            eod=fmt_dscr(kovenanten.schwelle_event_of_default),
+            anzahl=len(kovenanten.jahre_event_of_default),
+        ), _STYLE_TEXT))
     story.append(Spacer(1, 0.25 * cm))
 
     story.append(Paragraph(txt("bericht.abschnitt_cashflow_vermoegen"), _STYLE_H2))
@@ -956,11 +1065,14 @@ def build_pdf_report(inputs: ReportInputs) -> bytes:
     ), _STYLE_TEXT))
     if not df.dropna(subset=["dscr"]).empty:
         story.append(Paragraph(txt("bericht.abschnitt_dscr"), _STYLE_H2))
-        story.append(_chart_dscr(df))
+        story.append(_chart_dscr(
+            df, ea.dscr_cash_trap, ea.dscr_event_of_default
+        ))
         story.append(Paragraph(
             txt("bericht.abb_5_caption", dscr_min=fmt_dscr(kpis.dscr_min)),
             _STYLE_CAPTION,
         ))
+        story.extend(_kovenanten_abschnitt(inputs))
         story.append(Paragraph(txt("bericht.abschnitt_schuldenprofil"), _STYLE_H2))
         story.append(_chart_schuldenprofil(df, fremdkapital))
         story.append(Paragraph(txt("bericht.abb_6_caption"), _STYLE_CAPTION))
@@ -1111,47 +1223,11 @@ def build_pdf_report(inputs: ReportInputs) -> bytes:
         story.append(_chart_auktion_fits(modell_a))
         story.append(Paragraph(txt("bericht.abb_15_caption"), _STYLE_CAPTION))
 
-        # --- 8.3 Modellbeschreibung mit Formeln ---
-        story.append(Paragraph(txt("bericht.abschnitt_auktion_modell"), _STYLE_H2))
-        story.append(Paragraph(txt("bericht.modell_verteilungsfamilie"), _STYLE_TEXT))
-        story.append(_formel(
-            r"$f_Y(y)=\dfrac{\beta^{\alpha}}{\Gamma(\alpha)}\,"
-            r"y^{-\alpha-1}e^{-\beta/y},\qquad "
-            r"f_B(b)=f_Y(P_{max}-b),\quad b\leq P_{max}$"
-        ))
-        story.append(Paragraph(txt("bericht.modell_kalibrierung"), _STYLE_TEXT))
-        story.append(_formel(
-            r"$\mathrm{E}[\,b\mid b\leq p_m\,]=\bar{m},"
-            r"\qquad F_B(b_{min})=\varepsilon,"
-            r"\qquad r=\dfrac{1}{F_B(p_m)}$"
-        ))
-        story.append(Paragraph(txt("bericht.modell_punktprognose_intro"), _STYLE_TEXT))
-        story.append(_formel(
-            r"$\Delta^{(k)}_{t}=\Delta^{(k-1)}_{t}-\Delta^{(k-1)}_{t-1},"
-            r"\qquad \widehat{\Delta}^{(m)}_{t+1}=\Delta^{(m)}_{t}$"
-        ))
-        story.append(_formel(
-            r"$\widehat{\Delta}^{(k)}_{t+1}=\Delta^{(k)}_{t}"
-            r"+\lambda_k\,\widehat{\Delta}^{(k+1)}_{t+1},"
-            r"\qquad \hat{x}_{t+1}=x_{t}+\widehat{\Delta}^{(1)}_{t+1}$"
-        ))
-        story.append(Paragraph(
-            txt("bericht.modell_punktprognose_ergebnis",
-                formel_zeile=auk.get("formel_zeile", "")),
-            _STYLE_TEXT,
-        ))
-        story.append(Paragraph(txt("bericht.modell_unsicherheit_intro"), _STYLE_TEXT))
-        story.append(_formel(
-            r"$p_m\sim\left.\mathcal{N}(\hat{p}_m,\,\sigma^2)"
-            r"\right|_{(0{,}5;\;P_{max})},\qquad "
-            r"\mathrm{P}(\mathrm{Zuschlag}\mid b)=\mathrm{P}(p_m>b),"
-            r"\qquad b(z)=Q_{1-z}(p_m)$"
-        ))
-        story.append(Paragraph(txt("bericht.modell_zuschlagsdichte_intro"), _STYLE_TEXT))
-        story.append(_formel(
-            r"$f(\,b\mid b\leq p_m\,)"
-            r"=\dfrac{f_B(b)\;\mathbf{1}\{b\leq p_m\}}{F_B(p_m)}$"
-        ))
+        # Die mathematische Modellbeschreibung steht bewusst NICHT hier,
+        # sondern ausschliesslich in der Rechenmodell-Dokumentation
+        # (docs/rechenmodell/, Kapitel 15). Der Projektbericht zeigt
+        # Datenlage, Anpassung und Prognose - nicht die Herleitung.
+        story.append(Paragraph(txt("bericht.auktion_modell_verweis"), _STYLE_TEXT))
 
         # --- 8.4 Prognose der naechsten Runde (beide Plots) ---
         story.append(Paragraph(txt("bericht.abschnitt_auktion_prognose"), _STYLE_H2))
