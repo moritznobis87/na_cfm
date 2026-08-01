@@ -143,3 +143,83 @@ class TestPersistenz:
         geladen = excel_to_projects(projects_to_excel([project]))[0]
         assert geladen.capex.zusatzpositionen == []
         assert geladen.zusatz_opex == []
+
+
+class TestAlteExportdateien:
+    """Gemeldeter Fehler: gespeicherte Projekte liessen sich nach dem
+    Hinzukommen neuer Spalten nicht mehr einlesen. Die Vollstaendigkeits-
+    pruefung blockierte den Import, bevor die Vorbelegungen greifen
+    konnten - und zwar auch fuer Spalten, die diese Vorbelegung bereits
+    hatten (Widmung/Genehmigung)."""
+
+    def _ohne_spalten(self, projekt, spalten: list[str]) -> bytes:
+        """Exportdatei nachbilden, der die genannten Spalten fehlen."""
+        import io
+
+        import pandas as pd
+
+        df = pd.read_excel(
+            io.BytesIO(projects_to_excel([projekt])), sheet_name="Projekte"
+        )
+        df = df.drop(columns=[s for s in spalten if s in df.columns])
+        puffer = io.BytesIO()
+        with pd.ExcelWriter(puffer, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Projekte", index=False)
+        return puffer.getvalue()
+
+    def test_datei_ohne_zusatzpositionsspalten_ist_lesbar(self, project):
+        geladen = excel_to_projects(
+            self._ohne_spalten(
+                project, ["capex_zusatzpositionen_json", "zusatz_opex_json"]
+            )
+        )[0]
+        assert geladen.name == project.name
+        assert geladen.capex.summe_eur == project.capex.summe_eur
+        assert geladen.capex.zusatzpositionen == []
+        assert geladen.zusatz_opex == []
+
+    def test_jede_optionale_spalte_darf_einzeln_fehlen(self, project):
+        from engine.io_excel import OPTIONALE_PROJEKT_SPALTEN
+
+        for spalte in sorted(OPTIONALE_PROJEKT_SPALTEN):
+            geladen = excel_to_projects(self._ohne_spalten(project, [spalte]))
+            assert len(geladen) == 1, spalte
+
+    def test_datei_ohne_alle_optionalen_spalten_ist_lesbar(self, project):
+        """Der aelteste noch unterstuetzte Stand: keine der nachtraeglich
+        hinzugekommenen Spalten ist vorhanden."""
+        from engine.io_excel import OPTIONALE_PROJEKT_SPALTEN
+
+        geladen = excel_to_projects(
+            self._ohne_spalten(project, sorted(OPTIONALE_PROJEKT_SPALTEN))
+        )[0]
+        assert geladen.name == project.name
+        assert geladen.aktiv is True
+        assert geladen.capex.epc_eur == project.capex.epc_eur
+
+    def test_leere_zelle_wird_nicht_zu_nan(self, project):
+        """NaN ist wahrheitswertig wahr - eine leere Zelle darf trotzdem
+        nicht als Betrag durchgereicht werden, sonst wird die
+        Investitionssumme unbrauchbar."""
+        import io
+        import math
+
+        import pandas as pd
+
+        df = pd.read_excel(
+            io.BytesIO(projects_to_excel([project])), sheet_name="Projekte"
+        )
+        df.loc[0, "capex_widmung_eur"] = None
+        puffer = io.BytesIO()
+        with pd.ExcelWriter(puffer, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Projekte", index=False)
+
+        geladen = excel_to_projects(puffer.getvalue())[0]
+        assert geladen.capex.widmung_eur == 0.0
+        assert not math.isnan(geladen.capex.summe_eur)
+
+    def test_wirklich_fehlende_pflichtspalte_wird_gemeldet(self, project):
+        """Die Pruefung darf nicht komplett aufweichen: eine echte
+        Pflichtspalte muss weiterhin einen klaren Fehler ausloesen."""
+        with pytest.raises(ValueError, match="capex_epc_eur"):
+            excel_to_projects(self._ohne_spalten(project, ["capex_epc_eur"]))

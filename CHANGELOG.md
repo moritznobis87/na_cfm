@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.29 – Excel-Import älterer Dateien, Zusatzblöcke einklappbar (2026-08)
+
+- **Gespeicherte Projekte lassen sich wieder einlesen.** Die
+  Vollständigkeitsprüfung des Projekt-Imports blockierte Dateien, denen
+  eine nachträglich hinzugekommene Spalte fehlte – und zwar bevor die
+  dafür vorgesehene Vorbelegung greifen konnte. Betroffen waren
+  `capex_zusatzpositionen_json` und `zusatz_opex_json` (seit v4.28) sowie,
+  bereits zuvor, `capex_widmung_eur` und `capex_genehmigung_eur`.
+  Die optionalen Spalten stehen jetzt als `OPTIONALE_PROJEKT_SPALTEN`
+  neben der Spaltenliste, damit beides gemeinsam gepflegt wird. Eine
+  echte Pflichtspalte meldet weiterhin einen klaren Fehler.
+- Leere Zellen in optionalen Zahlenspalten werden als 0 gelesen. Zuvor
+  hätte ein `wert or 0` das NaN durchgereicht (NaN ist wahrheitswertig
+  wahr) und die Investitionssumme unbrauchbar gemacht.
+- **„Weitere Investkosten" und „Weitere Betriebskosten" sind eingeklappt**
+  und lassen sich je über einen Schalter vor der Überschrift einblenden.
+  Standard ist zugeklappt; bei einem Projekt mit bereits hinterlegten
+  Positionen startet der Block aufgeklappt. Ausblenden verändert die
+  gespeicherten Positionen nicht.
+- 7 neue Tests (Import ohne einzelne und ohne alle optionalen Spalten,
+  leere Zelle, weiterhin gemeldete Pflichtspalte, Schalterzustände);
+  Suite: 281.
+
 ## v4.28 – Frei benannte Zusatzpositionen (2026-08)
 
 - **Zusätzliche Investkosten- und Betriebskostenpositionen mit frei
