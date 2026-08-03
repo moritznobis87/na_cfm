@@ -117,8 +117,8 @@ eigener Datei und eigener Adresse; gruppiert werden sie ausschließlich
 Zuordnung wird **nicht** aus Namensmustern abgeleitet – „Lödersdorf
 Agri" und „Lödersdorf konventionell" sind zwei Anlagentypen, keine
 Sensitivitäten; das kann nur die eingebende Person entscheiden. Die
-Projektliste der Seitenleiste bündelt die Varianten eines Standorts in
-einer aufklappbaren Gruppe. In der Excel-Sicherung ist `variante` eine
+Seitenleiste führt Standorte, die Variantenreihe im Projektfenster
+wechselt zwischen ihnen. In der Excel-Sicherung ist `variante` eine
 optionale Spalte, ältere Dateien bleiben lesbar.
 
 ## Teststrategie

@@ -469,42 +469,6 @@ def _baue_css() -> str:
         }}
         .kontextzeile b {{ color: {Colors.INK}; font-weight: 600; }}
 
-        /* --- Standortgruppen der Projektliste ---------------------------------- */
-        /* Das Klappfeld ist Navigation, kein Inhaltsblock: kein Rahmen,
-           kein Innenabstand, damit die Varianten wie eingerueckte
-           Listenzeilen wirken und nicht wie ein Kasten in der Leiste. */
-        section[data-testid="stSidebar"] [data-testid="stExpander"] details {{
-            border: none;
-            background: transparent;
-        }}
-        section[data-testid="stSidebar"] [data-testid="stExpander"] summary {{
-            padding: 6px 8px;
-            color: {Colors.INK};
-            font-size: 0.9rem;
-            font-weight: 500;
-        }}
-        /* Ein langer Standortname darf die Kopfzeile nicht auf zwei
-           Zeilen brechen - die Gruppen verloeren sonst ihr Raster. Der
-           vollstaendige Name steht in den Zeilen darunter im Tooltip. */
-        section[data-testid="stSidebar"] [data-testid="stExpander"]
-        summary [data-testid="stMarkdownContainer"] p {{
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }}
-        section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {{
-            color: {Colors.BRAND};
-        }}
-        /* Einrueckung mit Fuehrungslinie: Sie zeigt, wie weit die Gruppe
-           reicht - ohne sie steht die letzte Variante scheinbar wieder
-           auf Standortebene. */
-        section[data-testid="stSidebar"] [data-testid="stExpander"]
-        [data-testid="stExpanderDetails"] {{
-            margin-left: 14px;
-            padding-left: 8px;
-            border-left: 2px solid {Colors.LINE};
-        }}
-
         /* --- Brotkrume --------------------------------------------------------- */
         .brotkrume {{
             font-size: 0.82rem;
@@ -512,6 +476,43 @@ def _baue_css() -> str:
             margin-bottom: 2px;
         }}
         .brotkrume b {{ color: {Colors.BRAND}; font-weight: 600; }}
+
+        /* --- Variantenleiste --------------------------------------------------- */
+        /* Die Sensitivitaeten eines Standorts als flache Reiterreihe direkt
+           unter dem Titel. Bewusst leiser als die Analyse-Tabs darunter:
+           Sie wechseln die RECHNUNG, die Tabs die SICHT auf sie - stuenden
+           beide gleich stark da, saehe die Seite nach zwei konkurrierenden
+           Navigationen aus. */
+        .st-key-variantenleiste {{
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin: -6px 0 6px 0;
+        }}
+        .varianten-label {{
+            color: {Colors.MUTED};
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-right: 4px;
+            white-space: nowrap;
+        }}
+        .st-key-variantenleiste button {{
+            border: 1px solid {Colors.LINE} !important;
+            border-radius: 999px !important;
+            padding: 1px 12px !important;
+            min-height: 0 !important;
+            color: {Colors.INK_SOFT} !important;
+            font-size: 0.84rem !important;
+        }}
+        .st-key-variantenleiste button:hover {{
+            border-color: {Colors.BRAND} !important;
+            color: {Colors.BRAND} !important;
+        }}
+        .st-key-variante_neu button {{
+            border-style: dashed !important;
+            color: {Colors.MUTED} !important;
+        }}
 
         /* --- Projektkarten ---------------------------------------------------- */
         /* Feste Hoehe: Ohne sie richtet sich jede Karte nach der Laenge
@@ -581,8 +582,8 @@ def _baue_css() -> str:
             overflow: hidden;
             text-overflow: ellipsis;
         }}
-        /* Der Variantenname steht als Marke unter dem Standortnamen - so
-           bleibt der Standort im Titel und die Karte trotzdem eindeutig. */
+        /* Der Variantenname steht als Marke in der Unterzeile - so bleibt
+           der Standortname im Titel und die Karte trotzdem eindeutig. */
         .project-card .card-variante {{
             align-self: flex-start;
             max-width: 100%;

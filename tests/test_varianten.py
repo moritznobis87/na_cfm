@@ -200,9 +200,9 @@ class TestKopieren:
 
 
 class TestOberflaeche:
-    """Die Projektliste buendelt Varianten in aufklappbaren Gruppen. Der
-    Test laeuft gegen den echten Projektordner und legt ihn danach wieder
-    her - AppTest kennt keinen eigenen Datenpfad."""
+    """Die Seitenleiste fuehrt Standorte, das Projektfenster die
+    Varianten. Der Test laeuft gegen den echten Projektordner und legt
+    ihn danach wieder her - AppTest kennt keinen eigenen Datenpfad."""
 
     @pytest.fixture
     def app_mit_zweiter_variante(self, tmp_path):
@@ -231,43 +231,103 @@ class TestOberflaeche:
             for datei in sicherung.glob("*.yaml"):
                 shutil.copy(datei, PROJECTS_DIR / datei.name)
 
-    def test_standort_mit_mehreren_varianten_bekommt_eine_gruppe(
+    def test_seitenleiste_fuehrt_standorte_nicht_varianten(
         self, app_mit_zweiter_variante
     ):
-        at, vorlage, zweite = app_mit_zweiter_variante
-        gruppen = [e for e in at.get("expander")
-                   if vorlage.name in (e.label or "")]
-        assert gruppen, "Klappfeld des Standorts fehlt"
-        assert gruppen[0].label.endswith("·2")
+        from app import services
 
-    def test_varianten_stehen_unter_ihrem_variantennamen(
-        self, app_mit_zweiter_variante
-    ):
         at, vorlage, zweite = app_mit_zweiter_variante
-        eintraege = {b.key: b.label for b in at.button
-                     if b.key and b.key.startswith("projektwahl_")}
-        assert eintraege[f"projektwahl_{vorlage.id}"] == "Basis"
-        assert eintraege[f"projektwahl_{zweite.id}"] == "Netz high"
+        eintraege = [b for b in at.button
+                     if b.key and b.key.startswith("projektwahl_")]
+        assert len(eintraege) == len(services.gruppiere_nach_standort())
+        # Beide Varianten stecken hinter EINEM Eintrag, dessen
+        # Beschriftung ihre Zahl nennt.
+        beschriftung = [b.label for b in eintraege if vorlage.name in b.label][0]
+        assert beschriftung.endswith("·2")
 
-    def test_einzelner_standort_bleibt_eine_zeile(
-        self, app_mit_zweiter_variante
-    ):
-        """Ein Klappfeld mit genau einem Eintrag waere nur Geraeusch."""
-        at, vorlage, zweite = app_mit_zweiter_variante
-        einzeln = load_project_yaml(
-            ROOT / "data" / "projects" / "template-konventionell.yaml"
-        )
-        assert not [e for e in at.get("expander")
-                    if einzeln.name in (e.label or "")]
-        eintraege = {b.key: b.label for b in at.button
-                     if b.key and b.key.startswith("projektwahl_")}
-        assert eintraege[f"projektwahl_{einzeln.id}"] == einzeln.name
-
-    def test_titel_der_projektseite_nennt_die_variante(
+    def test_variantenleiste_zeigt_alle_varianten_des_standorts(
         self, app_mit_zweiter_variante
     ):
         at, vorlage, zweite = app_mit_zweiter_variante
-        [b for b in at.button if b.key == f"open_{zweite.id}"][0].click()
+        [b for b in at.button if b.key == f"open_{vorlage.id}"][0].click()
         at.run()
         assert not at.exception
-        assert any(m.value == f"### {zweite.anzeigename}" for m in at.markdown)
+
+        reiter = {b.key: b.label for b in at.button
+                  if b.key and b.key.startswith("variante_")}
+        assert reiter[f"variante_{vorlage.id}"] == "Basis"
+        assert reiter[f"variante_{zweite.id}"] == "Netz high"
+        assert "variante_neu" in reiter
+
+    def test_reiter_wechselt_die_offene_variante(self, app_mit_zweiter_variante):
+        from app.router import _STATE_ID
+
+        at, vorlage, zweite = app_mit_zweiter_variante
+        [b for b in at.button if b.key == f"open_{vorlage.id}"][0].click()
+        at.run()
+        [b for b in at.button if b.key == f"variante_{zweite.id}"][0].click()
+        at.run()
+        assert not at.exception
+        assert at.session_state[_STATE_ID] == zweite.id
+
+
+class TestLoeschen:
+    """Gemeldet: "Das Loeschen der neu erstellten Varianten klappt nicht."
+
+    Geloescht wurde tatsaechlich - nur entstand die Rueckfrage erst nach
+    der Arbeitsflaeche und stand deshalb unterhalb von Kennzahlen,
+    Diagrammen und Parameterspalte. Wer im Ueberlaufmenue "Loeschen"
+    waehlte, sah oben nichts geschehen.
+    """
+
+    def test_rueckfrage_entsteht_vor_der_arbeitsflaeche(self):
+        quelle = (ROOT / "app" / "views" / "project_page.py").read_text(
+            encoding="utf-8"
+        )
+        rumpf = quelle[quelle.index("def render_project_page("):]
+        assert rumpf.index("_loeschbestaetigung(") < rumpf.index(
+            "col_ergebnis, col_parameter = st.columns("
+        ), "Die Loeschabfrage wuerde wieder unter der Arbeitsflaeche landen"
+
+    def test_neue_variante_laesst_sich_loeschen(self, tmp_path):
+        import shutil
+
+        from streamlit.testing.v1 import AppTest
+
+        from app.config import PROJECTS_DIR
+        from app.router import _STATE_ID
+
+        sicherung = tmp_path / "projects"
+        shutil.copytree(PROJECTS_DIR, sicherung)
+        try:
+            at = AppTest.from_file(str(ROOT / "streamlit_app.py"),
+                                   default_timeout=90)
+            at.run()
+            erstes = [b.key for b in at.button
+                      if b.key and b.key.startswith("open_")][0]
+            [b for b in at.button if b.key == erstes][0].click()
+            at.run()
+            herkunft = at.session_state[_STATE_ID]
+
+            [b for b in at.button if b.key == "variante_neu"][0].click()
+            at.run()
+            neue = at.session_state[_STATE_ID]
+            assert (PROJECTS_DIR / f"{neue}.yaml").exists()
+
+            [b for b in at.button if b.key == f"del_{neue}"][0].click()
+            at.run()
+            assert any("löschen" in w.value for w in at.warning)
+
+            [b for b in at.button if b.key == f"del_ok_{neue}"][0].click()
+            at.run()
+            assert not at.exception
+            assert not (PROJECTS_DIR / f"{neue}.yaml").exists()
+            # Der Standort bleibt geoeffnet - es gibt dort noch eine
+            # Rechnung, ein Sprung ins Portfolio waere unnoetig.
+            assert at.session_state[_STATE_ID] == herkunft
+        finally:
+            for datei in PROJECTS_DIR.glob("*.yaml"):
+                datei.unlink()
+            for datei in sicherung.glob("*.yaml"):
+                shutil.copy(datei, PROJECTS_DIR / datei.name)
+

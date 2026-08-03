@@ -36,6 +36,7 @@ from app.formatting import (
     fmt_number,
     fmt_pct,
 )
+from app.theme import Colors
 from app.views.project_detail import (
     render_assumptions_tab,
     render_cashflow_tab,
@@ -142,9 +143,7 @@ def render_project_page() -> None:
     gespeichert = services.get_project(projekt_id)
     global_assumptions = services.get_global_assumptions()
 
-    # Der Weg nennt Standort und Variante getrennt; der Titel traegt den
-    # Anzeigenamen, sonst waeren zwei Sensitivitaeten desselben Standorts
-    # auf der Seite nicht auseinanderzuhalten.
+    varianten = services.varianten_von(gespeichert)
     weg = [txt("oberflaeche.nav_portfolio"), gespeichert.name]
     if gespeichert.variante:
         weg.append(gespeichert.variante)
@@ -159,7 +158,17 @@ def render_project_page() -> None:
     col_titel, col_pdf, col_excel, col_mehr = st.columns([6, 1.5, 1.0, 0.5],
                                                          vertical_alignment="bottom")
     with col_titel:
-        st.markdown(f"### {gespeichert.anzeigename}")
+        st.markdown(f"### {gespeichert.name}")
+
+    _variantenleiste(varianten, projekt_id)
+
+    # Die Loeschabfrage entsteht hier, gleich unter der Kopfzeile - dort
+    # steht auch der Knopf, der sie ausloest. Frueher wurde sie erst nach
+    # dem Aufbau der Arbeitsflaeche erzeugt und landete deshalb UNTER
+    # Kennzahlen, Diagrammen und Parameterspalte: Wer im Ueberlaufmenue
+    # "Loeschen" waehlte, sah oben nichts geschehen und hielt das
+    # Loeschen fuer kaputt.
+    _loeschbestaetigung(gespeichert, pfad)
 
     form_key = f"param_{projekt_id}"
 
@@ -221,8 +230,6 @@ def render_project_page() -> None:
     with col_mehr:
         _weitere_aktionen(gespeichert, pfad)
 
-    _loeschbestaetigung(gespeichert, pfad)
-
     with col_ergebnis:
         _kennzahlen(result, npv_satz_pct, aenderungen, global_assumptions)
         render_kovenanten_status(result)
@@ -232,6 +239,47 @@ def render_project_page() -> None:
 # ---------------------------------------------------------------------------
 # Bausteine
 # ---------------------------------------------------------------------------
+
+
+def _variantenleiste(varianten: list[PVProject], projekt_id: str) -> None:
+    """Die Sensitivitaeten eines Standorts als Reiterreihe.
+
+    Warum hier und nicht in der Seitenleiste: Varianten sind kein
+    Ortswechsel, sondern derselbe Standort unter anderen Annahmen. Stehen
+    sie in der Projektliste, waechst diese mit jeder Sensitivitaet, und
+    man sieht der Liste nicht an, welche Eintraege dasselbe Feld meinen.
+    Hier bleibt der Standort stehen, waehrend die Rechnung wechselt - und
+    der Vergleich zweier Sensitivitaeten ist ein Klick.
+
+    Jede Variante ist weiterhin ein eigenes Projekt mit eigener Adresse;
+    der Reiter navigiert also schlicht zur Schwester-id.
+    """
+    with st.container(key="variantenleiste", horizontal=True):
+        st.markdown(
+            f'<div class="varianten-label">'
+            f'{html.escape(txt("oberflaeche.varianten_label"))}</div>',
+            unsafe_allow_html=True,
+        )
+        for variante in varianten:
+            key = f"variante_{variante.id}"
+            if st.button(variante.variantenlabel, key=key, type="tertiary",
+                         help=variante.anzeigename):
+                router.gehe_zu("projekt", projekt_id=variante.id)
+        if st.button(txt("oberflaeche.btn_neue_variante"), key="variante_neu",
+                     type="tertiary",
+                     help=txt("oberflaeche.btn_neue_variante_hilfe")):
+            neue = services.duplicate_project(projekt_id)
+            if neue is not None:
+                router.gehe_zu("projekt", projekt_id=neue.id)
+    st.markdown(
+        f"<style>.st-key-variante_{projekt_id} button {{"
+        f"background: {Colors.SELECT} !important;"
+        f"color: {Colors.INK} !important;"
+        f"font-weight: 600 !important;"
+        f"box-shadow: inset 0 -2px 0 {Colors.BRAND} !important;"
+        "}</style>",
+        unsafe_allow_html=True,
+    )
 
 
 def _kontextzeile(project, result, global_assumptions, npv_satz_pct: float) -> None:
@@ -262,7 +310,13 @@ def _kontextzeile(project, result, global_assumptions, npv_satz_pct: float) -> N
 
 def _kennzahlen(result, npv_satz_pct: float, aenderungen: int,
                 global_assumptions) -> None:
-    """Leitkennzahl Equity IRR, daneben die vier begleitenden Groessen."""
+    """Leitkennzahl Equity IRR, daneben die vier begleitenden Groessen.
+
+    Reihenfolge der Begleiter: NPV, Equity Value, CAPEX, Enterprise
+    Value. Sie stehen zweispaltig und werden zeilenweise gefuellt -
+    damit liegen die beiden Wertbegriffe (Equity Value oben rechts,
+    Enterprise Value unten rechts) uebereinander statt ueber Eck.
+    """
     kpis = result.kpis
     npv_wert = npv_at(result.cashflow, npv_satz_pct / 100)
     equity_value = npv_wert + kpis.eigenkapital_eur
@@ -301,17 +355,17 @@ def _kennzahlen(result, npv_satz_pct: float, aenderungen: int,
                 fmt_eur(equity_value),
             ),
             Kennzahl(
-                txt("oberflaeche.projekt_kpi_enterprise_value"),
-                fmt_eur_kompakt(enterprise_value),
-                txt("oberflaeche.kpi_enterprise_value_formel"),
-                fmt_eur(enterprise_value),
-            ),
-            Kennzahl(
                 txt("oberflaeche.projekt_kpi_capex"),
                 fmt_eur_kompakt(kpis.capex_total_eur),
                 f"{fmt_number(kpis.capex_total_eur / result.effective_assumptions.nennleistung_kwp, 0)} €/kWp"
                 if result.effective_assumptions.nennleistung_kwp else None,
                 fmt_eur(kpis.capex_total_eur),
+            ),
+            Kennzahl(
+                txt("oberflaeche.projekt_kpi_enterprise_value"),
+                fmt_eur_kompakt(enterprise_value),
+                txt("oberflaeche.kpi_enterprise_value_formel"),
+                fmt_eur(enterprise_value),
             ),
         ],
         group="projekt",
@@ -389,9 +443,8 @@ def _weitere_aktionen(project: PVProject, pfad) -> None:
     Exports haben - deshalb hier statt in der Knopfreihe.
     """
     with st.popover("⋯", width="stretch", help=txt("oberflaeche.aktionen_weitere")):
-        if st.button(txt("oberflaeche.btn_neue_variante"),
-                     key=f"dup_{project.id}", width="stretch",
-                     help=txt("oberflaeche.btn_neue_variante_hilfe")):
+        if st.button(txt("oberflaeche.btn_duplizieren"),
+                     key=f"dup_{project.id}", width="stretch"):
             kopie = services.duplicate_project(project.id)
             if kopie is not None:
                 router.gehe_zu("projekt", projekt_id=kopie.id)
@@ -415,8 +468,15 @@ def _loeschbestaetigung(project: PVProject, pfad) -> None:
     col_ja, col_nein, _ = st.columns([1, 1, 4])
     if col_ja.button(txt("oberflaeche.btn_ja_loeschen"), type="primary",
                      key=f"del_ok_{project.id}"):
+        # Nach dem Loeschen einer Variante bleibt man am Standort, solange
+        # dort noch eine Rechnung steht - der Sprung ins Portfolio waere
+        # ein Ortswechsel, den niemand verlangt hat.
+        geschwister = [v for v in services.varianten_von(project)
+                       if v.id != project.id]
         services.delete_project(project.id)
         st.session_state.pop(STATE_DELETE_CANDIDATE, None)
+        if geschwister:
+            router.gehe_zu("projekt", projekt_id=geschwister[0].id)
         router.gehe_zu("portfolio")
     if col_nein.button(txt("oberflaeche.btn_abbrechen"),
                        key=f"del_no_{project.id}"):
