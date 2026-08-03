@@ -75,6 +75,8 @@ alle Änderungen betreffen Navigation, Anordnung und Darstellung.
 
 ### v5.0.3 – Alphabetische Projektliste
 
+- 4 neue Tests (Sortierschlüssel, Reihenfolge nach Projektnamen, gleiche
+  Reihenfolge in Leiste und Kacheln); Suite: 297.
 - **Projekte stehen alphabetisch** – in der Seitenleiste wie in der
   Kachelübersicht. Sortiert wird nach dem angezeigten Namen; bisher nach
   Dateinamen, und der folgt der Projekt-ID, die bei einer Umbenennung
