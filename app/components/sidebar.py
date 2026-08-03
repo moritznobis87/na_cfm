@@ -91,32 +91,6 @@ def _gruppentitel(text: str) -> None:
     )
 
 
-def _projekteintrag(behaelter, projekt, beschriftung: str, seite: str,
-                    offenes_projekt: str | None, aktiv_keys: list[str],
-                    inaktiv_keys: list[str]) -> None:
-    """Eine Zeile der Projektliste - als Standort oder als Variante
-    innerhalb ihrer Gruppe.
-
-    `behaelter` ist die Seitenleiste selbst oder das Klappfeld eines
-    Standorts. Bewusst als Parameter: st.sidebar.button() schriebe auch
-    innerhalb eines Klappfelds an die Wurzel der Leiste, die Varianten
-    stuenden dann neben ihrer Gruppe statt darin.
-    """
-    key = f"projektwahl_{projekt.id}"
-    if seite == "projekt" and offenes_projekt == projekt.id:
-        aktiv_keys.append(key)
-    if not projekt.aktiv:
-        inaktiv_keys.append(key)
-    # Der vollstaendige Name steht im Tooltip - in der Leiste wird er
-    # auf eine Zeile gekuerzt (siehe app/theme.py).
-    hilfe = projekt.anzeigename
-    if not projekt.aktiv:
-        hilfe = f"{hilfe} — {txt('oberflaeche.badge_inaktiv')}"
-    if behaelter.button(beschriftung, key=key, width="stretch",
-                        type="tertiary", help=hilfe):
-        router.gehe_zu("projekt", projekt_id=projekt.id)
-
-
 def render_sidebar() -> None:
     """Baut die vollstaendige Seitenleiste."""
     aktiv_keys: list[str] = []
@@ -145,10 +119,10 @@ def render_sidebar() -> None:
             router.gehe_zu(code)
 
     # --- Projekte -----------------------------------------------------------
-    # Nach Standort gebuendelt: Ein Standort mit mehreren Sensitivitaeten
-    # bekommt eine aufklappbare Gruppe, ein einzelner bleibt eine Zeile.
-    # Sonst waechst die Liste mit jeder Sensitivitaet, und man sieht ihr
-    # nicht an, welche Eintraege dasselbe Feld meinen.
+    # Ein Eintrag je STANDORT, nicht je Variante: Sonst waechst die Liste
+    # mit jeder Sensitivitaet, und man sieht ihr nicht an, welche
+    # Eintraege dasselbe Feld meinen. Die Varianten waehlt man im
+    # Projektfenster (siehe app/views/project_page.py).
     projekte = services.list_project_files()
     standorte = services.gruppiere_nach_standort()
     _gruppentitel(txt("oberflaeche.nav_gruppe_projekte"))
@@ -156,19 +130,33 @@ def render_sidebar() -> None:
         st.sidebar.caption(txt("oberflaeche.sidebar_keine_projekte"))
     inaktiv_keys: list[str] = []
     for standort, varianten in standorte.items():
-        if len(varianten) == 1:
-            _projekteintrag(st.sidebar, varianten[0], varianten[0].name,
-                            seite, offenes_projekt, aktiv_keys, inaktiv_keys)
-            continue
-        # Aufgeklappt, solange eine Variante dieses Standorts offen ist -
-        # sonst muesste man nach jedem Seitenwechsel neu suchen, wo man
-        # gerade steht.
-        offen = offenes_projekt in {v.id for v in varianten}
-        gruppe = st.sidebar.expander(f"{standort}  ·{len(varianten)}",
-                                     expanded=offen)
-        for variante in varianten:
-            _projekteintrag(gruppe, variante, variante.variantenlabel,
-                            seite, offenes_projekt, aktiv_keys, inaktiv_keys)
+        # Ist eine Variante dieses Standorts offen, zeigt der Eintrag auf
+        # genau sie; sonst auf die erste. Andernfalls wuerde ein Klick auf
+        # den ohnehin aktiven Eintrag die offene Variante wechseln.
+        ziel = next(
+            (v for v in varianten if v.id == offenes_projekt), varianten[0]
+        )
+        key = f"projektwahl_{ziel.id}"
+        if seite == "projekt" and offenes_projekt in {v.id for v in varianten}:
+            aktiv_keys.append(key)
+        if all(not v.aktiv for v in varianten):
+            inaktiv_keys.append(key)
+        # Der vollstaendige Name steht im Tooltip - in der Leiste wird er
+        # auf eine Zeile gekuerzt (siehe app/theme.py).
+        beschriftung = standort
+        hilfe = standort
+        if len(varianten) > 1:
+            beschriftung = f"{standort}  ·{len(varianten)}"
+            hilfe = txt("oberflaeche.sidebar_standort_hilfe",
+                        name=standort,
+                        varianten=", ".join(v.variantenlabel for v in varianten))
+        if all(not v.aktiv for v in varianten):
+            hilfe = f"{hilfe} — {txt('oberflaeche.badge_inaktiv')}"
+        if st.sidebar.button(
+            beschriftung, key=key, width="stretch", type="tertiary",
+            help=hilfe,
+        ):
+            router.gehe_zu("projekt", projekt_id=ziel.id)
     _ausgrauen(inaktiv_keys)
 
     if st.sidebar.button(

@@ -45,12 +45,15 @@ def _projektkarte(z: dict, selected: str | None) -> None:
         klassen += " selected"
     if not project.aktiv:
         klassen += " inaktiv"
-    # Die Variante steht in einer eigenen Zeile, nicht im Titel: Sonst
-    # waeren drei Karten desselben Standorts nur an ihrem abgeschnittenen
-    # Namensende auseinanderzuhalten. Die Zeile haengt ohne Umbruch am
-    # vorigen Element - eine leere Zeile gefolgt von eingerueckten Zeilen
-    # liest Markdown als Codeblock, und die Karte zeigte dann ihren
-    # eigenen HTML-Quelltext.
+    # Die Variante steht in der Unterzeile, nicht im Titel: Sonst waeren
+    # drei Karten desselben Standorts nur an ihrem abgeschnittenen
+    # Namensende auseinanderzuhalten.
+    # Eigene Zeile statt Anhaengsel der technischen Zeile: Diese ist auf
+    # eine Zeile gekuerzt, ein angehaengtes Kennzeichen fiele bei langen
+    # Namen der Kuerzung zum Opfer - und genau dann wird es gebraucht.
+    # Die Zeile haengt ohne Umbruch am vorigen Element: Eine leere Zeile
+    # gefolgt von eingerueckten Zeilen liest Markdown als Codeblock, und
+    # die Karte zeigte dann ihren eigenen HTML-Quelltext.
     variante_zeile = (
         f'<div class="card-variante">{html.escape(project.variantenlabel)}</div>'
         if project.variante else ""

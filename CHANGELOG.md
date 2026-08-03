@@ -16,31 +16,28 @@ unverändert – die Variante ist ein reines Ordnungsmerkmal.
   „Lödersdorf konventionell" zwei Sensitivitäten eines Standorts oder
   zwei Anlagen sind, kann kein Parser entscheiden – die Zuordnung wird
   eingegeben.
-- **Aufklappbare Standortgruppen in der Projektliste.** Ein Standort mit
-  mehreren Sensitivitäten wird zu einer Gruppe, deren Kopfzeile die Zahl
-  der Varianten nennt; darin steht je Variante eine eingerückte Zeile
-  mit ihrem Variantennamen. Die Gruppe des geöffneten Projekts ist
-  aufgeklappt. Ein Standort mit nur einer Rechnung bleibt eine einzelne
-  Zeile – ein Klappfeld mit einem Eintrag wäre nur Geräusch.
-- **Titel und Weg der Projektseite** nennen Standort und Variante
-  getrennt („Portfolio › Buchkirchen › 8000er Pacht").
+- **Die Seitenleiste führt Standorte**, nicht Varianten: Ein Eintrag je
+  Standort, die Zahl der Varianten steht dahinter. Aus zwölf
+  gleichrangigen Einträgen werden damit vier.
+- **Variantenreihe im Projektfenster.** Direkt unter dem Titel stehen die
+  Sensitivitäten des Standorts als flache Reiterreihe; ein Klick wechselt
+  die Rechnung, während Standort, Sicht und Parameterspalte stehen
+  bleiben. „+ Variante" legt eine weitere an.
 - **Duplizieren erzeugt eine Variante**, keinen zweiten Standort mehr:
   Die Kopie behält den Standortnamen und bekommt einen freien
-  Variantennamen („Variante", „Variante 2", …). Der Eintrag im
-  Überlaufmenü heißt entsprechend „+ Variante".
+  Variantennamen („Variante", „Variante 2", …).
 - **Excel-Sicherung**: neue Spalte `variante` direkt hinter `name`. Sie
   ist optional – jede früher gesicherte Datei bleibt lesbar, ihre Zeilen
   gelten als Grundfall ihres Standorts.
 - Titel und Dateinamen von PDF-Bericht, Cashflow-Export,
   Pipeline-Ergebnisbericht, Portfoliotabelle und Auktionsmodul nennen den
   Anzeigenamen („Standort · Variante"), sonst wären zwei Sensitivitäten
-  in der Ausgabe nicht auseinanderzuhalten. Auf den Projektkacheln steht
-  die Variante als eigene Zeile unter dem Standortnamen.
+  in der Ausgabe nicht auseinanderzuhalten.
 - Nebenbei behoben: Speichern aus der Parameterspalte setzte ein
   stillgelegtes Projekt wieder auf „aktiv" – der Aktiv-Schalter liegt im
   Überlaufmenü und war im Formular nicht abgebildet.
-- 20 neue Tests (Modell, Excel-Rundlauf und Abwärtskompatibilität,
-  Gruppierung, Duplizieren, Standortgruppen der Seitenleiste); Suite: 322.
+- 19 neue Tests (Modell, Excel-Rundlauf und Abwärtskompatibilität,
+  Gruppierung, Duplizieren, Seitenleiste und Variantenreihe); Suite: 321.
 
 ## v5.0 – Neue Seitenstruktur (2026-08)
 
