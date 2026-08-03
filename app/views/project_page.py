@@ -142,9 +142,16 @@ def render_project_page() -> None:
     gespeichert = services.get_project(projekt_id)
     global_assumptions = services.get_global_assumptions()
 
+    # Der Weg nennt Standort und Variante getrennt; der Titel traegt den
+    # Anzeigenamen, sonst waeren zwei Sensitivitaeten desselben Standorts
+    # auf der Seite nicht auseinanderzuhalten.
+    weg = [txt("oberflaeche.nav_portfolio"), gespeichert.name]
+    if gespeichert.variante:
+        weg.append(gespeichert.variante)
     st.markdown(
-        f'<div class="brotkrume"><b>{html.escape(txt("oberflaeche.nav_portfolio"))}'
-        f"</b> › {html.escape(gespeichert.name)}</div>",
+        f'<div class="brotkrume"><b>{html.escape(weg[0])}</b> › '
+        + " › ".join(html.escape(t) for t in weg[1:])
+        + "</div>",
         unsafe_allow_html=True,
     )
 
@@ -152,7 +159,7 @@ def render_project_page() -> None:
     col_titel, col_pdf, col_excel, col_mehr = st.columns([6, 1.5, 1.0, 0.5],
                                                          vertical_alignment="bottom")
     with col_titel:
-        st.markdown(f"### {gespeichert.name}")
+        st.markdown(f"### {gespeichert.anzeigename}")
 
     form_key = f"param_{projekt_id}"
 
@@ -208,7 +215,7 @@ def render_project_page() -> None:
         st.download_button(
             txt("oberflaeche.btn_excel_export"),
             data=services.cashflow_to_excel(result),
-            file_name=f"{services.slugify(aktiv.name)}_cashflow.xlsx",
+            file_name=f"{services.slugify(aktiv.anzeigename)}_cashflow.xlsx",
             mime=_XLSX_MIME, width="stretch",
         )
     with col_mehr:
@@ -369,7 +376,7 @@ def _pdf_knopf(projekt_id: str, project: PVProject, npv_satz_pct: float,
         st.download_button(
             txt("oberflaeche.btn_pdf_bericht_laden"),
             data=st.session_state[pdf_key],
-            file_name=f"{services.slugify(project.name)}_bericht.pdf",
+            file_name=f"{services.slugify(project.anzeigename)}_bericht.pdf",
             mime="application/pdf", width="stretch", type="primary",
             key=f"pdf_dl_{projekt_id}",
         )
@@ -382,8 +389,9 @@ def _weitere_aktionen(project: PVProject, pfad) -> None:
     Exports haben - deshalb hier statt in der Knopfreihe.
     """
     with st.popover("⋯", width="stretch", help=txt("oberflaeche.aktionen_weitere")):
-        if st.button(txt("oberflaeche.btn_duplizieren"),
-                     key=f"dup_{project.id}", width="stretch"):
+        if st.button(txt("oberflaeche.btn_neue_variante"),
+                     key=f"dup_{project.id}", width="stretch",
+                     help=txt("oberflaeche.btn_neue_variante_hilfe")):
             kopie = services.duplicate_project(project.id)
             if kopie is not None:
                 router.gehe_zu("projekt", projekt_id=kopie.id)
@@ -402,7 +410,8 @@ def _weitere_aktionen(project: PVProject, pfad) -> None:
 def _loeschbestaetigung(project: PVProject, pfad) -> None:
     if st.session_state.get(STATE_DELETE_CANDIDATE) != project.id:
         return
-    st.warning(txt("oberflaeche.projekt_loeschen_warnung", name=project.name))
+    st.warning(txt("oberflaeche.projekt_loeschen_warnung",
+                   name=project.anzeigename))
     col_ja, col_nein, _ = st.columns([1, 1, 4])
     if col_ja.button(txt("oberflaeche.btn_ja_loeschen"), type="primary",
                      key=f"del_ok_{project.id}"):

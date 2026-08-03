@@ -469,6 +469,42 @@ def _baue_css() -> str:
         }}
         .kontextzeile b {{ color: {Colors.INK}; font-weight: 600; }}
 
+        /* --- Standortgruppen der Projektliste ---------------------------------- */
+        /* Das Klappfeld ist Navigation, kein Inhaltsblock: kein Rahmen,
+           kein Innenabstand, damit die Varianten wie eingerueckte
+           Listenzeilen wirken und nicht wie ein Kasten in der Leiste. */
+        section[data-testid="stSidebar"] [data-testid="stExpander"] details {{
+            border: none;
+            background: transparent;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stExpander"] summary {{
+            padding: 6px 8px;
+            color: {Colors.INK};
+            font-size: 0.9rem;
+            font-weight: 500;
+        }}
+        /* Ein langer Standortname darf die Kopfzeile nicht auf zwei
+           Zeilen brechen - die Gruppen verloeren sonst ihr Raster. Der
+           vollstaendige Name steht in den Zeilen darunter im Tooltip. */
+        section[data-testid="stSidebar"] [data-testid="stExpander"]
+        summary [data-testid="stMarkdownContainer"] p {{
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }}
+        section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {{
+            color: {Colors.BRAND};
+        }}
+        /* Einrueckung mit Fuehrungslinie: Sie zeigt, wie weit die Gruppe
+           reicht - ohne sie steht die letzte Variante scheinbar wieder
+           auf Standortebene. */
+        section[data-testid="stSidebar"] [data-testid="stExpander"]
+        [data-testid="stExpanderDetails"] {{
+            margin-left: 14px;
+            padding-left: 8px;
+            border-left: 2px solid {Colors.LINE};
+        }}
+
         /* --- Brotkrume --------------------------------------------------------- */
         .brotkrume {{
             font-size: 0.82rem;
@@ -486,7 +522,7 @@ def _baue_css() -> str:
             display: flex;
             flex-direction: column;
             gap: 3px;
-            height: 152px;
+            height: 168px;
             border: 1px solid {Colors.LINE};
             border-radius: 12px;
             padding: 12px 16px 10px 16px;
@@ -541,6 +577,21 @@ def _baue_css() -> str:
         .project-card .card-sub {{
             color: {Colors.MUTED};
             font-size: 0.84em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }}
+        /* Der Variantenname steht als Marke unter dem Standortnamen - so
+           bleibt der Standort im Titel und die Karte trotzdem eindeutig. */
+        .project-card .card-variante {{
+            align-self: flex-start;
+            max-width: 100%;
+            padding: 0 8px;
+            border-radius: 999px;
+            background: {Colors.SELECT};
+            color: {Colors.BRAND};
+            font-size: 0.78em;
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
