@@ -197,3 +197,77 @@ class TestKopieren:
         unveraendert = original.model_dump(exclude={"id", "variante"})
         assert kopie.model_dump(exclude={"id", "variante"}) == unveraendert
 
+
+
+class TestOberflaeche:
+    """Die Projektliste buendelt Varianten in aufklappbaren Gruppen. Der
+    Test laeuft gegen den echten Projektordner und legt ihn danach wieder
+    her - AppTest kennt keinen eigenen Datenpfad."""
+
+    @pytest.fixture
+    def app_mit_zweiter_variante(self, tmp_path):
+        import shutil
+
+        from streamlit.testing.v1 import AppTest
+
+        from app.config import PROJECTS_DIR
+
+        sicherung = tmp_path / "projects"
+        shutil.copytree(PROJECTS_DIR, sicherung)
+        vorlage = load_project_yaml(PROJECTS_DIR / "template-agri.yaml")
+        zweite = vorlage.model_copy(deep=True)
+        zweite.id, zweite.variante = "template-agri-netz-high", "Netz high"
+        save_project_yaml(zweite, PROJECTS_DIR / f"{zweite.id}.yaml")
+        try:
+            app = AppTest.from_file(
+                str(ROOT / "streamlit_app.py"), default_timeout=90
+            )
+            app.run()
+            assert not app.exception
+            yield app, vorlage, zweite
+        finally:
+            for datei in PROJECTS_DIR.glob("*.yaml"):
+                datei.unlink()
+            for datei in sicherung.glob("*.yaml"):
+                shutil.copy(datei, PROJECTS_DIR / datei.name)
+
+    def test_standort_mit_mehreren_varianten_bekommt_eine_gruppe(
+        self, app_mit_zweiter_variante
+    ):
+        at, vorlage, zweite = app_mit_zweiter_variante
+        gruppen = [e for e in at.get("expander")
+                   if vorlage.name in (e.label or "")]
+        assert gruppen, "Klappfeld des Standorts fehlt"
+        assert gruppen[0].label.endswith("·2")
+
+    def test_varianten_stehen_unter_ihrem_variantennamen(
+        self, app_mit_zweiter_variante
+    ):
+        at, vorlage, zweite = app_mit_zweiter_variante
+        eintraege = {b.key: b.label for b in at.button
+                     if b.key and b.key.startswith("projektwahl_")}
+        assert eintraege[f"projektwahl_{vorlage.id}"] == "Basis"
+        assert eintraege[f"projektwahl_{zweite.id}"] == "Netz high"
+
+    def test_einzelner_standort_bleibt_eine_zeile(
+        self, app_mit_zweiter_variante
+    ):
+        """Ein Klappfeld mit genau einem Eintrag waere nur Geraeusch."""
+        at, vorlage, zweite = app_mit_zweiter_variante
+        einzeln = load_project_yaml(
+            ROOT / "data" / "projects" / "template-konventionell.yaml"
+        )
+        assert not [e for e in at.get("expander")
+                    if einzeln.name in (e.label or "")]
+        eintraege = {b.key: b.label for b in at.button
+                     if b.key and b.key.startswith("projektwahl_")}
+        assert eintraege[f"projektwahl_{einzeln.id}"] == einzeln.name
+
+    def test_titel_der_projektseite_nennt_die_variante(
+        self, app_mit_zweiter_variante
+    ):
+        at, vorlage, zweite = app_mit_zweiter_variante
+        [b for b in at.button if b.key == f"open_{zweite.id}"][0].click()
+        at.run()
+        assert not at.exception
+        assert any(m.value == f"### {zweite.anzeigename}" for m in at.markdown)

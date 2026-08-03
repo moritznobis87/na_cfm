@@ -45,12 +45,22 @@ def _projektkarte(z: dict, selected: str | None) -> None:
         klassen += " selected"
     if not project.aktiv:
         klassen += " inaktiv"
+    # Die Variante steht in einer eigenen Zeile, nicht im Titel: Sonst
+    # waeren drei Karten desselben Standorts nur an ihrem abgeschnittenen
+    # Namensende auseinanderzuhalten. Die Zeile haengt ohne Umbruch am
+    # vorigen Element - eine leere Zeile gefolgt von eingerueckten Zeilen
+    # liest Markdown als Codeblock, und die Karte zeigte dann ihren
+    # eigenen HTML-Quelltext.
+    variante_zeile = (
+        f'<div class="card-variante">{html.escape(project.variantenlabel)}</div>'
+        if project.variante else ""
+    )
     st.markdown(
-        f'''<div class="{klassen}" title="{html.escape(project.name)}">
+        f'''<div class="{klassen}" title="{html.escape(project.anzeigename)}">
         <div class="card-kopf">
           <span class="card-title">{html.escape(project.name)}</span>
           <span class="card-badges">{typ_badge}</span>
-        </div>
+        </div>{variante_zeile}
         <span class="card-sub">{fmt_kwp(project.nennleistung_kwp)} · IBN {project.inbetriebnahme_jahr}</span>
         <div class="card-kpi-zeile">
           <span class="card-kpi">{fmt_pct(kpis.equity_irr)}</span>
@@ -144,7 +154,7 @@ def render_overview() -> None:
         [
             {
                 "id": z["id"],
-                "name": z["projekt"].name,
+                "name": z["projekt"].anzeigename,
                 "typ": "Agri-PV"
                 if z["projekt"].anlagentyp == AnlagenTyp.AGRI_PV
                 else "Konventionell",
@@ -199,7 +209,7 @@ def render_overview() -> None:
         vergleich = pd.DataFrame(
             [
                 {
-                    "Projekt": z["projekt"].name,
+                    "Projekt": z["projekt"].anzeigename,
                     "Typ": "Agri-PV"
                     if z["projekt"].anlagentyp == AnlagenTyp.AGRI_PV
                     else "Konventionell",
